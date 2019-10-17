@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  </head>
+<meta charset="UTF-8">
+<style>
+
+.node circle {
+  fill: #fff;
+  stroke: steelblue;
+  stroke-width: 3px;
+}
+
+.node text {
+  font: 12px sans-serif;
+}
+
+.link {
+  fill: none;
+  stroke: #ccc;
+  stroke-width: 2px;
+}
+
+</style>
+
+<body>
+
+  <input type="text" style="position:absolute;left:455px;top:235px;" size=3 onchange="change_focus()" id="center_sign" value="M217"/>
+
+  <div id="tablet_previews">
+    this is a test
+  </div>
+
+<!-- load the d3.js library -->	
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script>
+  // TODO maybe just grey out instead of hiding TODO
+  var ngram_counts;
+  var embeddings;
+  var treeData_left;
+  var treeData_right;
+ $().ready( function(){
+      // Get ngram data as JSON:
+      $.get({
+        url: "https://mrlogarithm.github.io/767-vis-project/pe_ngrams.json",
+        dataType:'json',
+        success:function(result) {
+          ngram_counts = result;
+          //draw_ngrams("pe");
+          console.log(ngram_counts);
+	  setup_left();
+	  setup_right();
+        }
+      });
+      $.get({
+        url: "https://mrlogarithm.github.io/767-vis-project/pe.vec.json",
+        dataType:'json',
+        success:function(result) {
+          embeddings = result;
+          //draw_ngrams("pe");
+          console.log(embeddings);
+        }
+      });
+      //$('.pe').change( function(){draw_ngrams("pe");} );
+    })
+  var corr = "corrections included";
+  var vars = "variants separate";
+
+  var embeddings;
+
+function cosine( a, b ) {
+    var dotprod = 0;
+    var a_len = 0;
+    var b_len = 0;
+    for ( i = 0; i < a.length; i++ ) {
+        dotprod += (a[i] * b[i]);
+        a_len += (a[i]*a[i]);
+        b_len += (b[i]*b[i]);
+    }
+    a_len = Math.sqrt(a_len);
+    b_len = Math.sqrt(b_len);
+    return dotprod / (a_len * b_len) // here you needed extra brackets
+}
+
+function get_nns( sign ) {
+  var sign_embed = embeddings[sign];
+  var nns = [];
+  for ( var key in embeddings ) {
+    nns.push( [cosine( embeddings[key], sign_embed ), key] );
+  }
+  nns.sort().reverse();
+  console.log(nns[0],nns[1],nns[2]);
+}
+
+
+  function change_focus() {
+    var new_focus = document.getElementById("center_sign").value;
+    ctx.left  = new_focus;
+    ctx.right = new_focus;
+    // change left and right contexts
+    // collapse and redraw trees
+    // find similar signs in embedding space
+    // redraw vertical suggestion bar with similar signs
+    console.log("hello " + new_focus);
+  }
+
+function get_treedata_left( sign, depth ) {
+  // get bigrams starting with sign:
+  var children = [];
+  for ( var k in ngram_counts["corrections included"]["variants separate"] ) {
+    if ( k.endsWith(" "+sign.trim()) && (k.split(" ").length-1 == depth) && 
+      (ngram_counts["corrections included"]["variants separate"][k] >= 1 ) ) {
+      console.log("found left ngram " + k);
+      children.push( get_treedata_left(k, depth+1) );
+    }
+  }
+  var name = sign.split(" ");
+  name = name[0];
+  if ( children == [] ){
+    return {"name":name}
+  } else {
+    return {"name":name,"children":children}
+  }
+}
+function get_treedata_right( sign, depth ) {
+  // get bigrams starting with sign:
+  var children = [];
+  for ( var k in ngram_counts["corrections included"]["variants separate"] ) {
+    if ( k.startsWith(sign.trim()+" ") && (k.split(" ").length-1 == depth) &&
+      (ngram_counts["corrections included"]["variants separate"][k] >= 1 ) ) {
+      console.log("found right ngram " + k);
+      children.push( get_treedata_right(k, depth+1) );
+    }
+  }
+  var name = sign.split(" ");
+  name = name[name.length-1];
+  if ( children == [] ){
+    return {"name":name}
+  } else {
+    return {"name":name,"children":children}
+  }
+}
+
+// Set the dimensions and margins of the diagram
+var margin = {top: 20, right: 90, bottom: 30, left: 90},
+    width = 960 - margin.left - margin.right,
+    height = 800 - margin.top - margin.bottom;
+
+// append the svg object to the body of the page
+// appends a 'group' element to 'svg'
+// moves the 'group' element to the top left margin
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.right + margin.left)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate("
+          + margin.left + "," + margin.top + ")");
+
+var i = 0,
+    duration = 500,
+  root = {"left":null, "right":null};
+var tail = {"left":null, "right":null};
+var selected = {"left":[], "right":[]};
+
+var ctx = { "left": "M217", "right": "M217" };
+
+// declares a tree layout and assigns the size
+var treemap = {
+  "left":  d3.tree().size([height, width/2]),
+  "right": d3.tree().size([height, width/2])
+  };
+
+
+function setup_right() {
+  treeData_right = get_treedata_right(ctx["left"],ctx.left.split(" ").length);
+  // Assigns parent, children, height, depth
+  root["right"] = d3.hierarchy(treeData_right, function(d) { return d.children; });
+  root["right"].x0 = height / 2;
+  root["right"].y0 = width / 2;
+  if (tail.right == null) {
+    tail.right = root.right;
+  }
+
+  if (root.right.children !== undefined ) {
+    root["right"].children.forEach(function(d){collapse(d)});
+  }
+
+  root.right.all_children = root.right.children;
+  if (root.right.children){
+    // todo only collapse if not selected
+    // delete child nodes unless they are selected or child of the tail
+  //root.right.children.forEach(collapse);
+  root.right.children.forEach(function(d) { 
+    if ( d.depth > selected.right.length ) {
+      // we are past the selected portion so dont collapse
+    }
+    // find which child at this depth is selected
+    console.log(selected.right[d.depth]);
+  });
+  root.right.children.forEach(function(d) { d.hidden = false; });
+  }
+  root["right"].hidden = false;
+    //update(root);
+  update(tail["right"], dir="right");
+}
+
+function setup_left() {
+  treeData_left = get_treedata_left(ctx["right"],ctx.right.split(" ").length);
+
+  root["left"]  = d3.hierarchy(treeData_left, function(d) { return d.children; });
+  root["left"].x0 = height / 2;
+  root["left"].y0 = width / 2;
+  if (tail.left  == null) {
+    tail.left  = root.left;
+  }
+
+  root.left.all_children = root.left.children;
+  // Collapse after the second level
+  if (root.left.children) {
+    root["left"].children.forEach(collapse);
+    //collapse(root.left.children[1]);
+    //console.log("all children:");
+    //console.log(root.left.all_children);
+    //root.left.children.pop();
+  }
+
+  if ( root.left.children){
+  //root.left.children.forEach(collapse);
+  root.left.children.forEach(function(d) { d.hidden = false; });
+  }
+  root.left.hidden = false;
+    //update(root);
+  update(tail["left"],  dir="left");
+}
+
+// Collapse the node and all it's children
+/*function collapse(d) {
+  if(d.children) {
+    d._children = d.children
+    d._children.forEach(collapse)
+    d.children = null
+  }
+}*/
+    function collapse(d) {
+        if (d.children) {
+            d.all_children = d.children;
+            d._children = d.children;
+            d._children.forEach(collapse);
+            d.children = null;
+            d.hidden = true;
+        }
+    }
+
+
+function update(source, dir="right", propagate=false) {
+
+  console.log("updating with source:");
+  console.log(source);
+  tail[dir] = source;
+  // todo get list of parent nodes - these specify the search string
+  // update list of tablet previews with this string
+
+  // Assigns the x and y position for the nodes
+  var treeData = treemap[dir](root[dir]);
+
+  // Compute the new tree layout.
+    var nodes = treeData.descendants().filter( function(d){return !d.hidden;}),
+      links = treeData.descendants().filter( function(d){return !d.hidden;}).slice(1);
+
+  // Normalize for fixed-depth.
+  var LAYER_SPACE, ROOT_OFFSET;
+  if ( dir == "left" ) {
+    LAYER_SPACE = -100;
+    ROOT_OFFSET = -50;
+  } else {
+    LAYER_SPACE = 100;
+    ROOT_OFFSET = 50;
+  }
+  nodes.forEach(function(d){ d.y = (ROOT_OFFSET + width / 2) + d.depth * LAYER_SPACE; });
+  if ( source.children ) {
+    console.log("I think you expanded " + source.data.name);
+    selected[dir] = [source];
+    ctx[dir] = source.data.name;
+  } else {
+    console.log("I think you collapsed " + source.data.name);
+    selected[dir] = [];
+    ctx[dir] = "";
+  }
+  if (source.depth > 0) {
+    var ptr = source;
+    while ( ptr.parent !== null ) {
+      ptr = ptr.parent;
+      selected[dir].push(ptr);
+      if ( dir == "left" ) {
+        ctx[dir] += " " + ptr.data.name;
+      } else {
+        ctx[dir] = ptr.data.name + " " + ctx[dir];
+      }
+    }
+  }
+  ctx[dir] = ctx[dir].trim();
+  selected[dir].reverse();
+  if (propagate) {
+    console.log("need to update ~"+dir+"  tree with ctx " + ctx[dir]);
+    if ( dir == "left" ) {
+      setup_right();
+    } else {
+      setup_left();
+    }
+  }
+  /*
+  */
+  /*if ( dir == "left" ) {
+    ctx[dir] = ctx[dir] + " " + document.getElementById("center_sign").value;
+  } else {
+    ctx[dir] = document.getElementById("center_sign").value + " " + ctx[dir];
+  }*/
+  ctx[dir] = ctx[dir].trim();
+  console.log(ctx[dir], dir);
+  //if ( source.parent !== null ) {
+    //console.log(source.parent.data.name);
+  //}
+
+  // ****************** Nodes section ***************************
+
+  // Update the nodes...
+  var node = svg.selectAll('g.node.'+dir)
+      .data(nodes, function(d) {return d.id || (d.id = ++i); });
+
+  // Enter any new nodes at the parent's previous position.
+  var nodeEnter = node.enter().append('g')
+      .attr('class', 'node '+dir)
+      .attr("transform", function(d) {
+        return "translate(" + source.y0 + "," + source.x0 + ")";
+       })
+       .on('click', click);
+
+  // Add Circle for the nodes
+  nodeEnter.append('circle')
+      .attr('class', 'node '+dir)
+      .attr('r', 1e-6)
+      .style("fill", function(d) {
+          return d._children ? "lightsteelblue" : (selected[dir].includes(d) ? "#f00" : "#fff");
+      });
+
+  // Add labels for the nodes
+  nodeEnter.append('text')
+      .attr("dy", ".35em")
+      .attr("x", function(d) {
+          return d.children || d._children ? -13 : 13;
+      })
+      .attr("text-anchor", function(d) {
+          return d.children || d._children ? "end" : "start";
+      })
+      .text(function(d) { return d.data.name; });
+
+  // UPDATE
+  var nodeUpdate = nodeEnter.merge(node);
+
+  // Transition to the proper position for the node
+  nodeUpdate.transition()
+    .duration(duration)
+    .attr("transform", function(d) { 
+        return "translate(" + d.y + "," + d.x + ")";
+     });
+
+  // Update the node attributes and style
+  nodeUpdate.select('circle.node.'+dir)
+    .attr('r', 10)
+    .style("fill", function(d) {
+        return d._children ? "lightsteelblue" : (selected[dir].includes(d) ? "#f00" : "#fff");
+    })
+    .attr('cursor', 'pointer');
+
+
+  // Remove any exiting nodes
+  var nodeExit = node.exit().transition()
+      .duration(duration)
+      .attr("transform", function(d) {
+          return "translate(" + source.y + "," + source.x + ")";
+      })
+      .remove();
+
+  // On exit reduce the node circles size to 0
+  nodeExit.select('circle')
+    .attr('r', 1e-6);
+
+  // On exit reduce the opacity of text labels
+  nodeExit.select('text')
+    .style('fill-opacity', 1e-6);
+
+  // ****************** links section ***************************
+
+  // Update the links...
+  var link = svg.selectAll('path.link.'+dir)
+      .data(links, function(d) { return d.id; });
+
+  // Enter any new links at the parent's previous position.
+  var linkEnter = link.enter().insert('path', "g")
+      .attr("class", "link "+dir)
+      .attr('d', function(d){
+        var o = {x: source.x0, y: source.y0}
+        return diagonal(o, o)
+      });
+
+  // UPDATE
+  var linkUpdate = linkEnter.merge(link);
+
+  // Transition back to the parent element position
+  linkUpdate.transition()
+      .duration(duration)
+      .attr('d', function(d){ return diagonal(d, d.parent) });
+
+  // Remove any exiting links
+  var linkExit = link.exit().transition()
+      .duration(duration)
+      .attr('d', function(d) {
+        var o = {x: source.x, y: source.y}
+        return diagonal(o, o)
+      })
+      .remove();
+
+  // Store the old positions for transition.
+  nodes.forEach(function(d){
+    d.x0 = d.x;
+    d.y0 = d.y;
+  });
+
+  // Creates a curved (diagonal) path from parent to the child nodes
+  function diagonal(s, d) {
+
+    path = `M ${s.y} ${s.x}
+            C ${(s.y + d.y) / 2} ${s.x},
+              ${(s.y + d.y) / 2} ${d.x},
+              ${d.y} ${d.x}`
+
+    return path
+  }
+
+  // Toggle children on click.
+  /*function click(d) {
+    if (d.children) {
+        d._children = d.children;
+        d.children = null;
+	d.hilite = false;
+      } else {
+        d.children = d._children;
+        d._children = null;
+	d.hilite = true;
+      }
+    update(d,dir=dir,propagate=true);
+  }*/
+  // Toggle children on click.
+function click(d) {
+  if (d==root[dir]){
+    return;
+  }
+    if (d.children) {
+        d._children = d.children;
+        d.children = null;
+
+        if (d._children) {
+            d._children.forEach(function(n) { n.hidden = true; });
+
+            if (d.parent) {
+                d.parent.children = d.parent.all_children;
+                d.parent.children.forEach(function(n) {
+                    n.hidden = false;
+                });
+            }
+        }
+
+    } else {
+        d.children = d._children;
+        d._children = null;
+        if (d.children) {
+            d.children.forEach(function(n) { n.hidden = false; });
+
+            if (d.parent) {
+                d.parent.children = [d,];
+                d.parent.children.filter(function(n) { return n !== d; }).forEach(function(n) {
+                    n.hidden = true;
+                });
+            }
+        }
+    }
+    update(d,dir=dir,propagate=true);
+}
+
+
+}
+
+</script>
+</body>
+</html>
+
+</>
