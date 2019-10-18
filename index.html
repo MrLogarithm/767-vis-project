@@ -2,167 +2,65 @@
 <html>
   <head>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
   </head>
-<meta charset="UTF-8">
-<style>
+  <meta charset="UTF-8">
+  <style>
+    .node image {
+      stroke: steelblue;
+      stroke-width: 3px;
+    }
 
-.node circle {
-  fill: #fff;
-  stroke: steelblue;
-  stroke-width: 3px;
-}
+    .node text {
+      font: 12px sans-serif;
+    }
 
-.node text {
-  font: 12px sans-serif;
-}
+    .link {
+      fill: none;
+      stroke: #ccc;
+      stroke-width: 2px;
+    }
+  </style>
+  <body>
 
-.link {
-  fill: none;
-  stroke: #ccc;
-  stroke-width: 2px;
-}
+  <input type="text" style="position:absolute;left:480px;top:385px;" size=3 onchange="change_focus()" id="center_sign" value="M217"/>
 
-</style>
-
-<body>
-
-  <input type="text" style="position:absolute;left:455px;top:235px;" size=3 onchange="change_focus()" id="center_sign" value="M217"/>
+  <svg id="svg_trees">
+  </svg>
 
   <div id="tablet_previews">
-    this is a test
+    Tablet previews will go here.
   </div>
 
-<!-- load the d3.js library -->	
-<script src="https://d3js.org/d3.v4.min.js"></script>
 <script>
-  // TODO maybe just grey out instead of hiding TODO
-  var ngram_counts;
-  var embeddings;
-  var treeData_left;
-  var treeData_right;
- $().ready( function(){
-      // Get ngram data as JSON:
-      $.get({
-        url: "https://mrlogarithm.github.io/767-vis-project/pe_ngrams.json",
-        dataType:'json',
-        success:function(result) {
-          ngram_counts = result;
-          //draw_ngrams("pe");
-          console.log(ngram_counts);
-	  setup_left();
-	  setup_right();
-        }
-      });
-      $.get({
-        url: "https://mrlogarithm.github.io/767-vis-project/pe.vec.json",
-        dataType:'json',
-        success:function(result) {
-          embeddings = result;
-          //draw_ngrams("pe");
-          console.log(embeddings);
-        }
-      });
-      //$('.pe').change( function(){draw_ngrams("pe");} );
-    })
-  var corr = "corrections included";
-  var vars = "variants separate";
+// TODO maybe just grey out instead of hiding TODO
+var ngram_counts;
+var embeddings;
 
-  var embeddings;
-
-function cosine( a, b ) {
-    var dotprod = 0;
-    var a_len = 0;
-    var b_len = 0;
-    for ( i = 0; i < a.length; i++ ) {
-        dotprod += (a[i] * b[i]);
-        a_len += (a[i]*a[i]);
-        b_len += (b[i]*b[i]);
-    }
-    a_len = Math.sqrt(a_len);
-    b_len = Math.sqrt(b_len);
-    return dotprod / (a_len * b_len) // here you needed extra brackets
-}
-
-function get_nns( sign ) {
-  var sign_embed = embeddings[sign];
-  var nns = [];
-  for ( var key in embeddings ) {
-    nns.push( [cosine( embeddings[key], sign_embed ), key] );
-  }
-  nns.sort().reverse();
-  console.log(nns[0],nns[1],nns[2]);
-}
-
-
-  function change_focus() {
-    var new_focus = document.getElementById("center_sign").value;
-    ctx.left  = new_focus;
-    ctx.right = new_focus;
-    // change left and right contexts
-    // collapse and redraw trees
-    // find similar signs in embedding space
-    // redraw vertical suggestion bar with similar signs
-    console.log("hello " + new_focus);
-  }
-
-function get_treedata_left( sign, depth ) {
-  // get bigrams starting with sign:
-  var children = [];
-  for ( var k in ngram_counts["corrections included"]["variants separate"] ) {
-    if ( k.endsWith(" "+sign.trim()) && (k.split(" ").length-1 == depth) && 
-      (ngram_counts["corrections included"]["variants separate"][k] >= 1 ) ) {
-      console.log("found left ngram " + k);
-      children.push( get_treedata_left(k, depth+1) );
-    }
-  }
-  var name = sign.split(" ");
-  name = name[0];
-  if ( children == [] ){
-    return {"name":name}
-  } else {
-    return {"name":name,"children":children}
-  }
-}
-function get_treedata_right( sign, depth ) {
-  // get bigrams starting with sign:
-  var children = [];
-  for ( var k in ngram_counts["corrections included"]["variants separate"] ) {
-    if ( k.startsWith(sign.trim()+" ") && (k.split(" ").length-1 == depth) &&
-      (ngram_counts["corrections included"]["variants separate"][k] >= 1 ) ) {
-      console.log("found right ngram " + k);
-      children.push( get_treedata_right(k, depth+1) );
-    }
-  }
-  var name = sign.split(" ");
-  name = name[name.length-1];
-  if ( children == [] ){
-    return {"name":name}
-  } else {
-    return {"name":name,"children":children}
-  }
-}
+//////////////////////////////////////////////////
+// COLLAPSIBLE TREE SETUP
+//
 
 // Set the dimensions and margins of the diagram
 var margin = {top: 20, right: 90, bottom: 30, left: 90},
-    width = 960 - margin.left - margin.right,
+    width = 1000 - margin.left - margin.right,
     height = 800 - margin.top - margin.bottom;
 
-// append the svg object to the body of the page
 // appends a 'group' element to 'svg'
 // moves the 'group' element to the top left margin
-var svg = d3.select("body").append("svg")
+var svg = d3.select("#svg_trees")
     .attr("width", width + margin.right + margin.left)
     .attr("height", height + margin.top + margin.bottom)
-  .append("g")
-    .attr("transform", "translate("
-          + margin.left + "," + margin.top + ")");
+    .append("g")
+    .attr("transform", 
+      "translate("+ margin.left + "," + margin.top + ")"
+    );
 
-var i = 0,
-    duration = 500,
-  root = {"left":null, "right":null};
-var tail = {"left":null, "right":null};
+var i = 0;
+var duration = 0;
+var root = {"left":null, "right":null};
+var prune = {"left":null, "right":null};
 var selected = {"left":[], "right":[]};
-
 var ctx = { "left": "M217", "right": "M217" };
 
 // declares a tree layout and assigns the size
@@ -172,92 +70,196 @@ var treemap = {
   };
 
 
-function setup_right() {
-  treeData_right = get_treedata_right(ctx["left"],ctx.left.split(" ").length);
-  // Assigns parent, children, height, depth
-  root["right"] = d3.hierarchy(treeData_right, function(d) { return d.children; });
-  root["right"].x0 = height / 2;
-  root["right"].y0 = width / 2;
-  if (tail.right == null) {
-    tail.right = root.right;
-  }
+$().ready( function(){
+  // Get ngram data as JSON:
+  $.get({
+     url: "https://mrlogarithm.github.io/767-vis-project/pe_ngrams.json",
+     dataType:'json',
+     success:function(result) {
+       ngram_counts = result;
+       console.log("Loaded nGram counts");
+       $.get({
+         url: "https://mrlogarithm.github.io/767-vis-project/pe.vec.json",
+         dataType:'json',
+         success:function(result) {
+           embeddings = result;
+           console.log("Loaded sign embeddings");
+           setup("right");
+           setup("left");
+         }
+       });
+     }
+   });
+});
 
-  if (root.right.children !== undefined ) {
-    root["right"].children.forEach(function(d){collapse(d)});
-  }
+var corr = "corrections included";
+var vars = "variants separate";
 
-  root.right.all_children = root.right.children;
-  if (root.right.children){
-    // todo only collapse if not selected
-    // delete child nodes unless they are selected or child of the tail
-  //root.right.children.forEach(collapse);
-  root.right.children.forEach(function(d) { 
-    if ( d.depth > selected.right.length ) {
-      // we are past the selected portion so dont collapse
-    }
-    // find which child at this depth is selected
-    console.log(selected.right[d.depth]);
-  });
-  root.right.children.forEach(function(d) { d.hidden = false; });
-  }
-  root["right"].hidden = false;
-    //update(root);
-  update(tail["right"], dir="right");
+/////////////////////////
+// TODO 
+//
+function change_focus() {
+  var new_focus = document.getElementById("center_sign").value;
+  ctx.left  = new_focus;
+  ctx.right = new_focus;
+  // change left and right contexts
+  // collapse and redraw trees
+  // find similar signs in embedding space
+  // redraw vertical suggestion bar with similar signs
+  setup("left");
+  setup("right");
+  console.log("hello " + new_focus);
 }
 
-function setup_left() {
-  treeData_left = get_treedata_left(ctx["right"],ctx.right.split(" ").length);
+/////////////////////////
+// Working:
+//
+function get_treedata( sign, depth, dir ) {
 
-  root["left"]  = d3.hierarchy(treeData_left, function(d) { return d.children; });
-  root["left"].x0 = height / 2;
-  root["left"].y0 = width / 2;
-  if (tail.left  == null) {
-    tail.left  = root.left;
+  var children = [];
+  for ( var k in ngram_counts["corrections included"]["variants separate"] ) {
+    if ( (((dir == "left") && k.endsWith(" "+sign.trim())) || ((dir == "right") && k.startsWith(sign.trim()+" "))) &&
+         (k.split(" ").length-1 == depth) &&
+         (ngram_counts["corrections included"]["variants separate"][k] >= 1 ) 
+    ) {
+      children.push( get_treedata(k, depth+1, dir) );
+    }
   }
+  var name = sign.split(" ");
+  name = (dir == "left") ? name[0] : name[name.length-1];
+  if ( children == [] ) {
+    return {"name":name}
+  } else {
+    return {"name":name,"children":children}
+  }
+}
 
-  root.left.all_children = root.left.children;
+//////////////////////////////////////////////////
+// NEAREST NEIGHBORS SETUP
+//
+
+function cosine( u, v ) {
+  var sum   = 0;
+  var len_u = 0;
+  var len_v = 0;
+  for ( var i = 0; i < u.length; i++ ) {
+    sum   += u[i] * v[i];
+    len_u += u[i] * u[i];
+    len_v += v[i] * v[i];
+  }
+  return sum / ( Math.sqrt(len_u) * Math.sqrt(len_v) );
+}
+
+function get_nns( sign, top_k = 5 ) {
+  var sign_embedding = embeddings[sign];
+  var nns = [];
+  for ( var key in embeddings ) {
+    var similarity = cosine( embeddings[key], sign_embed );
+    nns.push( [similarity, key] );
+  }
+  nns.sort().reverse();
+  return nns.slice(0,top_k);
+}
+
+
+
+
+
+
+function setup( dir, reselect=false ) {
+  // Full tree rooted in focussed sign:
+  var treeData = get_treedata(
+    document.getElementById("center_sign").value,
+    1,
+    dir
+  );
+
+    root[dir]  = d3.hierarchy(
+    treeData, 
+    function(d) { return d.children; }
+  );
+  root[dir].x0 = height / 2;
+  root[dir].y0 = width / 2;
+
+  root[dir].all_children = root[dir].children;
   // Collapse after the second level
-  if (root.left.children) {
-    root["left"].children.forEach(collapse);
-    //collapse(root.left.children[1]);
-    //console.log("all children:");
-    //console.log(root.left.all_children);
-    //root.left.children.pop();
+  if (root[dir].children) {
+    root[dir].children.forEach(collapse);
+    root[dir].children.forEach(function(d){expand_selected(d, dir);});
   }
+  update(root[dir],  dir, propagate=false, reselect=reselect);
+  refresh_pruned_tree(dir);
+  recolor(root[dir],dir,prune[dir]);
+}
+function refresh_pruned_tree( dir ) {
+  // Tree data constrained by the current selection:
+  var otherDir = (dir == "left") ? "right" : "left";
+  var treeData_pruned = get_treedata(
+    ctx[otherDir],
+    ctx[otherDir].split(" ").length, 
+    dir
+  );
+  prune[dir] = d3.hierarchy(treeData_pruned, function(d){ return d.children});
+}
+function recolor(node,dir,prune) {
+    // root is always in common
+    // for each child, if not exist, remove click() and grey out
+  console.log("pruning to:");
+  console.log(prune);
+    if ( node.children ) {
+      for ( var i = 0; i < node.children.length; i++ ) {
+	console.log("Should I prune"+node.children[i].data.name+"?");
+	var found = false;
+       if (prune.children){
+	for ( var k = 0; k < prune.children.length; k++ ) {
+	  if ( node.children[i].data.name == prune.children[k].data.name ) {
+	    found = true;
+	    break;
+	  }
+       }}
+	if (found) {
+	console.log("No!");
+	  //d3.selectAll("#"+dir+"_"+(node.depth+1)+"_"+node.children[i].data.name).on("click",function(d){click(d,dir)});
+	} else {
+	  console.log("Yes!");
+          d3.selectAll("#"+dir+"_"+(node.depth+1)+"_"+node.children[i].data.name).style("fill","#222");
+          //d3.selectAll("#"+dir+"_"+(node.depth+1)+"_"+node.children[i].data.name).on("click",null);
+	}
+      }
+    }
+}
 
-  if ( root.left.children){
-  //root.left.children.forEach(collapse);
-  root.left.children.forEach(function(d) { d.hidden = false; });
-  }
-  root.left.hidden = false;
-    //update(root);
-  update(tail["left"],  dir="left");
+function expand_selected(d, dir) {
+  //console.log(d.data.name);
+  //console.log("selected["+dir+"]:");
+  //console.log(selected[dir]);
+  if ( (selected[dir][d.depth]) && (selected[dir][d.depth].data.name == d.data.name) ) {
+    console.log("I should expand the node " + d.data.name);
+    d.children = d._children;
+    if (d.children) {
+      d.children.forEach(collapse);
+      d.children.forEach(function(dd){expand_selected(dd,dir)});
+    }
+    } else if (d.children) {
+      d.children.forEach(collapse);
+    }
 }
 
 // Collapse the node and all it's children
-/*function collapse(d) {
+function collapse(d) {
   if(d.children) {
     d._children = d.children
     d._children.forEach(collapse)
     d.children = null
   }
-}*/
-    function collapse(d) {
-        if (d.children) {
-            d.all_children = d.children;
-            d._children = d.children;
-            d._children.forEach(collapse);
-            d.children = null;
-            d.hidden = true;
-        }
-    }
+}
 
+function update(source, dir="right", propagate=false, reselect=false) {
 
-function update(source, dir="right", propagate=false) {
-
-  console.log("updating with source:");
-  console.log(source);
-  tail[dir] = source;
+  //console.log("Reselect?");
+  //console.log(reselect);
+  //console.log("Propagate?");
+  //console.log(propagate);
   // todo get list of parent nodes - these specify the search string
   // update list of tablet previews with this string
 
@@ -265,62 +267,56 @@ function update(source, dir="right", propagate=false) {
   var treeData = treemap[dir](root[dir]);
 
   // Compute the new tree layout.
-    var nodes = treeData.descendants().filter( function(d){return !d.hidden;}),
-      links = treeData.descendants().filter( function(d){return !d.hidden;}).slice(1);
+    var nodes = treeData.descendants().filter( function(d){return true;}),
+      links = treeData.descendants().filter( function(d){return true;}).slice(1);
 
   // Normalize for fixed-depth.
   var LAYER_SPACE, ROOT_OFFSET;
   if ( dir == "left" ) {
     LAYER_SPACE = -100;
-    ROOT_OFFSET = -50;
+    ROOT_OFFSET = 0;
   } else {
     LAYER_SPACE = 100;
-    ROOT_OFFSET = 50;
+    ROOT_OFFSET = 0;
   }
   nodes.forEach(function(d){ d.y = (ROOT_OFFSET + width / 2) + d.depth * LAYER_SPACE; });
-  if ( source.children ) {
-    console.log("I think you expanded " + source.data.name);
-    selected[dir] = [source];
-    ctx[dir] = source.data.name;
+  if ( reselect ) {
+    console.log("Not changing the selection, because I'm just pruning the tree");
   } else {
-    console.log("I think you collapsed " + source.data.name);
-    selected[dir] = [];
-    ctx[dir] = "";
-  }
-  if (source.depth > 0) {
-    var ptr = source;
-    while ( ptr.parent !== null ) {
-      ptr = ptr.parent;
-      selected[dir].push(ptr);
-      if ( dir == "left" ) {
-        ctx[dir] += " " + ptr.data.name;
-      } else {
-        ctx[dir] = ptr.data.name + " " + ctx[dir];
+    if ( source.children ) {
+      console.log("I think you expanded " + source.data.name);
+      selected[dir] = [source];
+      ctx[dir] = source.data.name;
+    } else {
+      console.log("I think you collapsed " + source.data.name);
+      selected[dir] = [];
+      ctx[dir] = "";
+    }
+    if (source.depth > 0) {
+      var ptr = source;
+      while ( ptr.parent !== null ) {
+        ptr = ptr.parent;
+        selected[dir].push(ptr);
+        if ( dir == "left" ) {
+          ctx[dir] += " " + ptr.data.name;
+        } else {
+          ctx[dir] = ptr.data.name + " " + ctx[dir];
+        }
       }
     }
+    ctx[dir] = ctx[dir].trim();
+    selected[dir].reverse();
   }
-  ctx[dir] = ctx[dir].trim();
-  selected[dir].reverse();
   if (propagate) {
     console.log("need to update ~"+dir+"  tree with ctx " + ctx[dir]);
-    if ( dir == "left" ) {
-      setup_right();
-    } else {
-      setup_left();
-    }
+    var otherDir = ( dir == "left" ) ? "right" : "left";
+    //setup( otherDir, reselect=true );
+    update(root[otherDir],  otherDir, propagate=false, reselect=true);
+    refresh_pruned_tree(otherDir);
+    recolor(root[otherDir],otherDir,prune[otherDir]);
   }
-  /*
-  */
-  /*if ( dir == "left" ) {
-    ctx[dir] = ctx[dir] + " " + document.getElementById("center_sign").value;
-  } else {
-    ctx[dir] = document.getElementById("center_sign").value + " " + ctx[dir];
-  }*/
   ctx[dir] = ctx[dir].trim();
   console.log(ctx[dir], dir);
-  //if ( source.parent !== null ) {
-    //console.log(source.parent.data.name);
-  //}
 
   // ****************** Nodes section ***************************
 
@@ -334,24 +330,36 @@ function update(source, dir="right", propagate=false) {
       .attr("transform", function(d) {
         return "translate(" + source.y0 + "," + source.x0 + ")";
        })
-       .on('click', click);
+      .on('click', function(d){click(d,dir)});
 
+var imgsize = 50;
   // Add Circle for the nodes
-  nodeEnter.append('circle')
-      .attr('class', 'node '+dir)
-      .attr('r', 1e-6)
-      .style("fill", function(d) {
-          return d._children ? "lightsteelblue" : (selected[dir].includes(d) ? "#f00" : "#fff");
-      });
+  nodeEnter.append('image')
+      .attr('class', "node "+dir)
+      .attr('id', function(d){return dir+"_"+d.depth+"_"+d.data.name})
+      //.attr('r', 1e-6)
+      .attr('y', -imgsize/2)
+      .attr('width', imgsize)
+      .attr('height', imgsize)
+      .attr("href",function(d){return "pngs/PE_mainforms/"+d.data.name+".png";})
+      .style("mix-blend-mode","darken")
+      .style("fill","#0f0")
+      .style("background-color","#0f0")
+      //.style("fill", function(d) {
+          //return d._children ? "lightsteelblue" : "#fff";
+      //})
+  ;
 
   // Add labels for the nodes
   nodeEnter.append('text')
-      .attr("dy", ".35em")
+      .attr("dy", "-1.25em")
+      .attr("dx", "3em")
       .attr("x", function(d) {
           return d.children || d._children ? -13 : 13;
       })
       .attr("text-anchor", function(d) {
-          return d.children || d._children ? "end" : "start";
+          //return d.children || d._children ? "end" : "start";
+	return "middle";
       })
       .text(function(d) { return d.data.name; });
 
@@ -366,11 +374,11 @@ function update(source, dir="right", propagate=false) {
      });
 
   // Update the node attributes and style
-  nodeUpdate.select('circle.node.'+dir)
+  nodeUpdate.select('image.node.'+dir)
     .attr('r', 10)
-    .style("fill", function(d) {
-        return d._children ? "lightsteelblue" : (selected[dir].includes(d) ? "#f00" : "#fff");
-    })
+    //.style("fill", function(d) {
+        //return d._children ? "lightsteelblue" : "#fff";
+    //})
     .attr('cursor', 'pointer');
 
 
@@ -382,8 +390,8 @@ function update(source, dir="right", propagate=false) {
       })
       .remove();
 
-  // On exit reduce the node circles size to 0
-  nodeExit.select('circle')
+  // On exit reduce the node images size to 0
+  nodeExit.select('image')
     .attr('r', 1e-6);
 
   // On exit reduce the opacity of text labels
@@ -438,58 +446,37 @@ function update(source, dir="right", propagate=false) {
     return path
   }
 
-  // Toggle children on click.
-  /*function click(d) {
-    if (d.children) {
-        d._children = d.children;
-        d.children = null;
-	d.hilite = false;
-      } else {
-        d.children = d._children;
-        d._children = null;
-	d.hilite = true;
-      }
-    update(d,dir=dir,propagate=true);
-  }*/
-  // Toggle children on click.
-function click(d) {
-  if (d==root[dir]){
-    return;
-  }
-    if (d.children) {
-        d._children = d.children;
-        d.children = null;
 
-        if (d._children) {
-            d._children.forEach(function(n) { n.hidden = true; });
-
-            if (d.parent) {
-                d.parent.children = d.parent.all_children;
-                d.parent.children.forEach(function(n) {
-                    n.hidden = false;
-                });
-            }
-        }
-
+  d3.selectAll("image.node."+dir).style("fill",function(d){
+    if (( selected[dir][d.depth] ) && (selected[dir][d.depth].data.name == d.data.name )) {
+      return "#afa";
     } else {
-        d.children = d._children;
-        d._children = null;
-        if (d.children) {
-            d.children.forEach(function(n) { n.hidden = false; });
-
-            if (d.parent) {
-                d.parent.children = [d,];
-                d.parent.children.filter(function(n) { return n !== d; }).forEach(function(n) {
-                    n.hidden = true;
-                });
-            }
-        }
+      return d._children ? "lightsteelblue" : "#fff";
     }
-    update(d,dir=dir,propagate=true);
-}
+  });
 
-
+  refresh_pruned_tree(dir);
+  recolor(root[dir],dir,prune[dir]);
 }
+  // Toggle children on click.
+  function click(d, dir) {
+    if (d.children) {
+      d._children = d.children;
+      d.children = null;
+    } else {
+      d.children = d._children;
+      if (d.children){
+        d.children.forEach(collapse);
+      }
+      d._children = null;
+    }
+    console.log("updating other side:");
+    console.log("source is");
+    console.log(d);
+    console.log(dir);
+    update(d,dir=dir,propagate=true,reselect=false);
+  }
+  // Toggle children on click.
 
 </script>
 </body>
