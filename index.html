@@ -1,8 +1,14 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <!--
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+      -->
+      <script src="jquery.min.js"></script>
+    <!--
+      <script src="https://d3js.org/d3.v4.min.js"></script>
+      -->
+    <script src="d3.v4.min.js"></script>
   </head>
   <meta charset="UTF-8">
   <style>
@@ -23,10 +29,17 @@
   </style>
   <body>
 
-  <input type="text" style="position:absolute;left:480px;top:385px;" size=3 onchange="change_focus()" id="center_sign" value="M217"/>
+  <div id="embedding_window">
+    Sign embedding space goes here.
+  </div>
 
   <svg id="svg_trees">
+    <mask id="myMask">
+      <rect x="-30" y="-15" width="60" height="30" fill="white" />
+    </mask>
   </svg>
+  <input type="text" style="position:relative;left:-535px;top:-400px;" size=3 onchange="change_focus()" id="center_sign" value="M217"/>
+
 
   <div id="tablet_previews">
     Tablet previews will go here.
@@ -73,13 +86,15 @@ var treemap = {
 $().ready( function(){
   // Get ngram data as JSON:
   $.get({
-     url: "https://mrlogarithm.github.io/767-vis-project/pe_ngrams.json",
+     //url: "https://mrlogarithm.github.io/767-vis-project/pe_ngrams.json",
+     url: "pe_ngrams.json",
      dataType:'json',
      success:function(result) {
        ngram_counts = result;
        console.log("Loaded nGram counts");
        $.get({
-         url: "https://mrlogarithm.github.io/767-vis-project/pe.vec.json",
+         //url: "https://mrlogarithm.github.io/767-vis-project/pe.vec.json",
+         url: "pe.vec.json",
          dataType:'json',
          success:function(result) {
            embeddings = result;
@@ -106,6 +121,9 @@ function change_focus() {
   // collapse and redraw trees
   // find similar signs in embedding space
   // redraw vertical suggestion bar with similar signs
+  root = {"left":null, "right":null};
+  prune = {"left":null, "right":null};
+  selected = {"left":[], "right":[]};
   setup("left");
   setup("right");
   console.log("hello " + new_focus);
@@ -170,16 +188,17 @@ function setup( dir, reselect=false ) {
   // Full tree rooted in focussed sign:
   var treeData = get_treedata(
     document.getElementById("center_sign").value,
-    1,
+    document.getElementById("center_sign").value.split(" ").length,
     dir
   );
 
-    root[dir]  = d3.hierarchy(
+  root[dir]  = d3.hierarchy(
     treeData, 
     function(d) { return d.children; }
   );
   root[dir].x0 = height / 2;
   root[dir].y0 = width / 2;
+  root[dir].data.name = document.getElementById("center_sign").value;
 
   root[dir].all_children = root[dir].children;
   // Collapse after the second level
@@ -202,10 +221,10 @@ function refresh_pruned_tree( dir ) {
   prune[dir] = d3.hierarchy(treeData_pruned, function(d){ return d.children});
 }
 function recolor(node,dir,prune) {
-    // root is always in common
-    // for each child, if not exist, remove click() and grey out
-  console.log("pruning to:");
-  console.log(prune);
+  // root is always in common
+  // for each child, if not exist, remove click() and grey out
+  //console.log("pruning to:");
+  //console.log(prune);
     if ( node.children ) {
       for ( var i = 0; i < node.children.length; i++ ) {
 	console.log("Should I prune"+node.children[i].data.name+"?");
@@ -219,11 +238,11 @@ function recolor(node,dir,prune) {
        }}
 	if (found) {
 	console.log("No!");
-	  //d3.selectAll("#"+dir+"_"+(node.depth+1)+"_"+node.children[i].data.name).on("click",function(d){click(d,dir)});
+          //d3.selectAll("#"+dir+"_"+(node.depth+1)+"_"+node.children[i].data.name+"_img").style("filter","invert(0)");
 	} else {
 	  console.log("Yes!");
-          d3.selectAll("#"+dir+"_"+(node.depth+1)+"_"+node.children[i].data.name).style("fill","#222");
-          //d3.selectAll("#"+dir+"_"+(node.depth+1)+"_"+node.children[i].data.name).on("click",null);
+          d3.selectAll("#"+dir+"_"+(node.depth+1)+"_"+node.children[i].data.name).style("fill","#555");
+          //d3.selectAll("#"+dir+"_"+(node.depth+1)+"_"+node.children[i].data.name+"_img").style("filter","invert(1)");
 	}
       }
     }
@@ -273,10 +292,10 @@ function update(source, dir="right", propagate=false, reselect=false) {
   // Normalize for fixed-depth.
   var LAYER_SPACE, ROOT_OFFSET;
   if ( dir == "left" ) {
-    LAYER_SPACE = -100;
+    LAYER_SPACE = -50;
     ROOT_OFFSET = 0;
   } else {
-    LAYER_SPACE = 100;
+    LAYER_SPACE = 50;
     ROOT_OFFSET = 0;
   }
   nodes.forEach(function(d){ d.y = (ROOT_OFFSET + width / 2) + d.depth * LAYER_SPACE; });
@@ -329,39 +348,65 @@ function update(source, dir="right", propagate=false, reselect=false) {
       .attr('class', 'node '+dir)
       .attr("transform", function(d) {
         return "translate(" + source.y0 + "," + source.x0 + ")";
-       })
-      .on('click', function(d){click(d,dir)});
+       });
 
-var imgsize = 50;
+  nodeEnter
+      .filter(function(d){
+	return (d.children || d._children)
+      })
+      .on('click', function(d){click(d,dir)})
+      .attr('cursor', 'pointer')
+  ;
+
+  var imgsize = 40;
   // Add Circle for the nodes
-  nodeEnter.append('image')
-      .attr('class', "node "+dir)
+  nodeEnter
+      .filter(function(d){
+        return d.parent;
+      })
+      .append('circle')
       .attr('id', function(d){return dir+"_"+d.depth+"_"+d.data.name})
-      //.attr('r', 1e-6)
-      .attr('y', -imgsize/2)
+      .attr('class', "node "+dir)
+      .attr('r', imgsize/1.9)
+      .style("fill","red")
+      .attr('cy', 0)
+      .attr('cx',imgsize/2 - (dir=="left"?imgsize:0))
       .attr('width', imgsize)
       .attr('height', imgsize)
-      .attr("href",function(d){return "pngs/PE_mainforms/"+d.data.name+".png";})
-      .style("mix-blend-mode","darken")
-      .style("fill","#0f0")
-      .style("background-color","#0f0")
-      //.style("fill", function(d) {
-          //return d._children ? "lightsteelblue" : "#fff";
-      //})
+  ;
+  nodeEnter
+      .filter(function(d){
+        return d.parent;
+      })
+      .append('image')
+      .attr('id', function(d){return dir+"_"+d.depth+"_"+d.data.name+"_img"})
+      .attr('y', -imgsize/2)
+      .attr('x',(dir=="left")?-imgsize:0)
+      .attr('width', imgsize)
+      .attr('height', imgsize)
+      .attr("href",function(d){return "pngs/PE_mainforms/"+d.data.name+".trans.png";})
   ;
 
   // Add labels for the nodes
   nodeEnter.append('text')
-      .attr("dy", "-1.25em")
-      .attr("dx", "3em")
-      .attr("x", function(d) {
-          return d.children || d._children ? -13 : 13;
-      })
-      .attr("text-anchor", function(d) {
-          //return d.children || d._children ? "end" : "start";
-	return "middle";
-      })
-      .text(function(d) { return d.data.name; });
+        .attr("dy", function(d) {
+          return ( d.data.name == "unk" || d.data.name == "X" )
+	    ? "5"
+	    : "-1.15em";
+	})
+        .attr("dx", function(d){
+	  return (dir=="left")
+	    ? -imgsize/2
+	    :  imgsize/2
+        })
+        .attr("text-anchor", "middle")
+        .text(function(d) {
+          return (d.depth == 0) 
+	    ? "" 
+	    : (d.children || d._children 
+	      ? d.data.name.replace("unk","[...]")
+	      : "" ); 
+        });
 
   // UPDATE
   var nodeUpdate = nodeEnter.merge(node);
@@ -373,13 +418,14 @@ var imgsize = 50;
         return "translate(" + d.y + "," + d.x + ")";
      });
 
+  /*
   // Update the node attributes and style
-  nodeUpdate.select('image.node.'+dir)
-    .attr('r', 10)
+  nodeUpdate.select('circle.node.'+dir)
+    //.attr('r', 10)
     //.style("fill", function(d) {
         //return d._children ? "lightsteelblue" : "#fff";
     //})
-    .attr('cursor', 'pointer');
+  ;*/
 
 
   // Remove any exiting nodes
@@ -389,10 +435,6 @@ var imgsize = 50;
           return "translate(" + source.y + "," + source.x + ")";
       })
       .remove();
-
-  // On exit reduce the node images size to 0
-  nodeExit.select('image')
-    .attr('r', 1e-6);
 
   // On exit reduce the opacity of text labels
   nodeExit.select('text')
@@ -447,11 +489,11 @@ var imgsize = 50;
   }
 
 
-  d3.selectAll("image.node."+dir).style("fill",function(d){
+  d3.selectAll("circle.node."+dir).style("fill",function(d){
     if (( selected[dir][d.depth] ) && (selected[dir][d.depth].data.name == d.data.name )) {
       return "#afa";
     } else {
-      return d._children ? "lightsteelblue" : "#fff";
+      return d.children||d._children ? "lightsteelblue" : "#000";
     }
   });
 
@@ -470,6 +512,17 @@ var imgsize = 50;
       }
       d._children = null;
     }
+    // Collapse sibling nodes to save space
+    // TODO Option to disable this? Might
+    // want to compare multiple subtrees.
+    /*
+    if ( d.parent ) {
+      d.parent.children.filter(
+	function(dd){
+	  return d.data.name != dd.data.name
+	}).forEach(collapse);
+    }
+    */
     console.log("updating other side:");
     console.log("source is");
     console.log(d);
