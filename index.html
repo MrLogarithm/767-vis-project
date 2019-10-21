@@ -86,15 +86,15 @@ var treemap = {
 $().ready( function(){
   // Get ngram data as JSON:
   $.get({
-     //url: "https://mrlogarithm.github.io/767-vis-project/pe_ngrams.json",
-     url: "pe_ngrams.json",
+     url: "https://mrlogarithm.github.io/767-vis-project/pe_ngrams.json",
+     //url: "pe_ngrams.json",
      dataType:'json',
      success:function(result) {
        ngram_counts = result;
        console.log("Loaded nGram counts");
        $.get({
-         //url: "https://mrlogarithm.github.io/767-vis-project/pe.vec.json",
-         url: "pe.vec.json",
+         url: "https://mrlogarithm.github.io/767-vis-project/pe.vec.json",
+         //url: "pe.vec.json",
          dataType:'json',
          success:function(result) {
            embeddings = result;
