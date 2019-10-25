@@ -31,7 +31,7 @@ var yValue = function(d) { return d.embed_pca_y;}, // data -> value
 
 // freq controls the word size
 var freqValue = function(d) {return d.freq;},
-    freqScale = d3.scaleLinear().range([16, 20]),
+    freqScale = d3.scaleLinear().range([16, 25]),
     freqMap = function(d) {return freqScale(freqValue(d))};
 
 // setup fill color
@@ -39,7 +39,8 @@ var cValue = function(d) { return d.freq;},
     color = d3.scaleOrdinal(d3.schemeBuGn).domain([0,1]);
 
 // add the graph canvas to the body of the webpage
-var svg = d3.select('#embedding_window').append("svg")
+//var svg = d3.select('#embedding_window').append("svg")
+var svg = d3.select('#embedding_svg')
     .attr("width", widthE + marginE.left + marginE.right)
     .attr("height", heightE + marginE.top + marginE.bottom)
   .append("g")
@@ -77,26 +78,26 @@ d3.csv("image_embed_subset.csv", function(error, data) {
   //     .style('opacity', 0.3);
   var image = dot.enter()
       .append('image')
-      .attr('id', data.word+"_img")
+      .attr('id', "embed_img")
       .attr('x', xMap)
       .attr('y', yMap)
       .attr('width', freqMap)
       .attr('height', freqMap)
-      .attr("href",function(d){return "pngs/PE_mainforms/"+d.word+".png";});
+      .attr("href",function(d){return "pngs/PE_mainforms/"+d.word+".trans.png";});
   //set image event
   var imageEvent = image.on("mouseover", function(d) {
       // select element in current context
       wordembedtip.transition()
            .duration(200)
            .style("opacity", .9);
-      wordembedtip.html(d.word + "<br/> (" + xValue(d)
-      + ", " + yValue(d) + ")")
-           .style("left", (d3.event.pageX + 55) + "px")
-           .style("top", (d3.event.pageY - 10) + "px");
+      wordembedtip.html(d.word + "<br/> Occurance:" + d.freq)
+           .style("left", (d3.event.pageX + 85) + "px")
+           .style("top", (d3.event.pageY + 20) + "px");
      d3.select( this ).raise()
        .transition()
-       .attr("height", 60)
-       .attr("width", 60);
+       .attr("href", function(d){return "pngs/PE_mainforms/"+d.word+".png";})
+       .attr("height", 100)
+       .attr("width", 100);
          })
     .on("mouseout", function(d) {
         wordembedtip.transition()
@@ -104,12 +105,15 @@ d3.csv("image_embed_subset.csv", function(error, data) {
              .style("opacity", 0);
        d3.select( this )
          .transition()
-         .attr("height",15)
-         .attr("width", 15);
+         .attr("href",function(d){return "pngs/PE_mainforms/"+d.word+".trans.png";})
+         .attr("height",freqMap)
+         .attr("width", freqMap);
            })
     .on('click', function(d){
       document.getElementById("center_sign").value = d.word;
-      console.log(document.getElementById("center_sign").value);});
+      console.log(document.getElementById("center_sign").value);
+      change_focus();
+    });
 
 });
 

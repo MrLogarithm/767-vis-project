@@ -29,26 +29,31 @@
 
     .wordembedtip {
       position: absolute;
-      width: 200px;
-      height: 28px;
+      width: 120px;
+      height: 45px;
       pointer-events: none;
+      background-color: white;
     }
+
   </style>
   <body>
 
+  <!-- EMBED -->
   <div id="embedding_window">
-    Word Cloud Visualization
+    <svg id="embedding_svg">
+    </svg>
   </div>
-
   <script src="embed2d.js"></script>
 
-
+  <!-- TREE -->
+  <div style="margin-top:0;">
   <svg id="svg_trees">
     <mask id="myMask">
       <rect x="-30" y="-15" width="60" height="30" fill="white" />
     </mask>
   </svg>
   <input type="text" style="position:relative;left:-535px;top:-400px;" size=3 onchange="change_focus()" id="center_sign" value="M217"/>
+  </div>
 
 
   <div id="tablet_previews">
@@ -71,7 +76,7 @@ var margin = {top: 20, right: 90, bottom: 30, left: 90},
 
 // appends a 'group' element to 'svg'
 // moves the 'group' element to the top left margin
-var svg = d3.select("#svg_trees")
+var svg_tree = d3.select("#svg_trees")
     .attr("width", width + margin.right + margin.left)
     .attr("height", height + margin.top + margin.bottom)
     .append("g")
@@ -350,7 +355,7 @@ function update(source, dir="right", propagate=false, reselect=false) {
   // ****************** Nodes section ***************************
 
   // Update the nodes...
-  var node = svg.selectAll('g.node.'+dir)
+  var node = svg_tree.selectAll('g.node.'+dir)
       .data(nodes, function(d) {return d.id || (d.id = ++i); });
 
   // Enter any new nodes at the parent's previous position.
@@ -453,7 +458,7 @@ function update(source, dir="right", propagate=false, reselect=false) {
   // ****************** links section ***************************
 
   // Update the links...
-  var link = svg.selectAll('path.link.'+dir)
+  var link = svg_tree.selectAll('path.link.'+dir)
       .data(links, function(d) { return d.id; });
 
   // Enter any new links at the parent's previous position.
