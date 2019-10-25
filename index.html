@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <!--
+
       <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-      -->
-      <script src="jquery.min.js"></script>
-    <!--
+
+      <!-- <script src="jquery.min.js"></script> -->
+
       <script src="https://d3js.org/d3.v4.min.js"></script>
-      -->
-    <script src="d3.v4.min.js"></script>
+
+    <!-- <script src="d3.v4.min.js"></script> -->
   </head>
   <meta charset="UTF-8">
   <style>
@@ -26,12 +26,22 @@
       stroke: #ccc;
       stroke-width: 2px;
     }
+
+    .wordembedtip {
+      position: absolute;
+      width: 200px;
+      height: 28px;
+      pointer-events: none;
+    }
   </style>
   <body>
 
   <div id="embedding_window">
-    Sign embedding space goes here.
+    Word Cloud Visualization
   </div>
+
+  <script src="embed2d.js"></script>
+
 
   <svg id="svg_trees">
     <mask id="myMask">
@@ -65,7 +75,7 @@ var svg = d3.select("#svg_trees")
     .attr("width", width + margin.right + margin.left)
     .attr("height", height + margin.top + margin.bottom)
     .append("g")
-    .attr("transform", 
+    .attr("transform",
       "translate("+ margin.left + "," + margin.top + ")"
     );
 
@@ -111,7 +121,7 @@ var corr = "corrections included";
 var vars = "variants separate";
 
 /////////////////////////
-// TODO 
+// TODO
 //
 function change_focus() {
   var new_focus = document.getElementById("center_sign").value;
@@ -138,7 +148,7 @@ function get_treedata( sign, depth, dir ) {
   for ( var k in ngram_counts["corrections included"]["variants separate"] ) {
     if ( (((dir == "left") && k.endsWith(" "+sign.trim())) || ((dir == "right") && k.startsWith(sign.trim()+" "))) &&
          (k.split(" ").length-1 == depth) &&
-         (ngram_counts["corrections included"]["variants separate"][k] >= 1 ) 
+         (ngram_counts["corrections included"]["variants separate"][k] >= 1 )
     ) {
       children.push( get_treedata(k, depth+1, dir) );
     }
@@ -193,7 +203,7 @@ function setup( dir, reselect=false ) {
   );
 
   root[dir]  = d3.hierarchy(
-    treeData, 
+    treeData,
     function(d) { return d.children; }
   );
   root[dir].x0 = height / 2;
@@ -215,7 +225,7 @@ function refresh_pruned_tree( dir ) {
   var otherDir = (dir == "left") ? "right" : "left";
   var treeData_pruned = get_treedata(
     ctx[otherDir],
-    ctx[otherDir].split(" ").length, 
+    ctx[otherDir].split(" ").length,
     dir
   );
   prune[dir] = d3.hierarchy(treeData_pruned, function(d){ return d.children});
@@ -401,11 +411,11 @@ function update(source, dir="right", propagate=false, reselect=false) {
         })
         .attr("text-anchor", "middle")
         .text(function(d) {
-          return (d.depth == 0) 
-	    ? "" 
-	    : (d.children || d._children 
+          return (d.depth == 0)
+	    ? ""
+	    : (d.children || d._children
 	      ? d.data.name.replace("unk","[...]")
-	      : "" ); 
+	      : "" );
         });
 
   // UPDATE
@@ -414,7 +424,7 @@ function update(source, dir="right", propagate=false, reselect=false) {
   // Transition to the proper position for the node
   nodeUpdate.transition()
     .duration(duration)
-    .attr("transform", function(d) { 
+    .attr("transform", function(d) {
         return "translate(" + d.y + "," + d.x + ")";
      });
 
@@ -532,7 +542,8 @@ function update(source, dir="right", propagate=false, reselect=false) {
   // Toggle children on click.
 
 </script>
-</body>
-</html>
 
-</>
+
+</body>
+
+</html>
