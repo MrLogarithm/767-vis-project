@@ -64,7 +64,11 @@ d3.csv("image_embed_subset.csv", function(error, data) {
   svg.append("g")
       .attr("class", "yAxis")
       .call(yAxis);
-
+      
+  svg.call(d3.zoom()
+      .extent([[0, 0], [width, height]])
+      .scaleExtent([1, 8])
+      .on("zoom", zoomed));
   // draw dots
   var dot = svg.selectAll(".dot")
       .data(data);
