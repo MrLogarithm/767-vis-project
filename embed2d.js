@@ -1,14 +1,6 @@
-// // load data
-// var embed2d_data = d3.csv("embed2d.csv", function(error, data) {
-//     if (error) {
-//         return console.warn(error);
-//       }
-//     });
-// console.log("Loaded 2d embedding csv");
-
 //set embedding plot canvas size
 const marginE = {top: 20, right: 20, bottom: 30, left: 40},
-    widthE = 960 - marginE.left - marginE.right,
+    widthE = 800 - marginE.left - marginE.right,
     heightE = 500 - marginE.top - marginE.bottom;
 /*
  * value accessor - returns the value to encode for a given data object.
@@ -35,14 +27,14 @@ var freqValue = function(d) {return d.freq;},
     freqMap = function(d) {return freqScale(freqValue(d))};
 
 // setup fill color
-var cValue = function(d) { return d.freq;},
-    color = d3.scaleOrdinal(d3.schemeBuGn).domain([0,1]);
+// var cValue = function(d) { return d.freq;},
+//     color = d3.scaleOrdinal(d3.schemeBuGn).domain([0,1]);
 
 // add the graph canvas to the body of the webpage
-//var svg = d3.select('#embedding_window').append("svg")
 var svg = d3.select('#embedding_svg')
     .attr("width", widthE + marginE.left + marginE.right)
     .attr("height", heightE + marginE.top + marginE.bottom)
+    .attr("viewBox", [0, 0, widthE + marginE.left + marginE.right, heightE + marginE.top + marginE.bottom])
   .append("g")
     .attr("transform", "translate(" + marginE.left + "," + marginE.top + ")");
 
@@ -50,6 +42,7 @@ var svg = d3.select('#embedding_svg')
 var wordembedtip = d3.select("body").append("div")
     .attr("class", "wordembedtip")
     .style("opacity", 0);
+
 d3.csv("image_embed_subset.csv", function(error, data) {
   // don't want dots overlapping axis, so add in buffer to data domain
   xScale.domain([d3.min(data, xValue)-3, d3.max(data, xValue)+4]).nice();
@@ -64,11 +57,12 @@ d3.csv("image_embed_subset.csv", function(error, data) {
   svg.append("g")
       .attr("class", "yAxis")
       .call(yAxis);
-      
+
   svg.call(d3.zoom()
       .extent([[0, 0], [width, height]])
-      .scaleExtent([1, 8])
+      .scaleExtent([1, 10])
       .on("zoom", zoomed));
+
   // draw dots
   var dot = svg.selectAll(".dot")
       .data(data);
@@ -88,8 +82,10 @@ d3.csv("image_embed_subset.csv", function(error, data) {
       .attr('width', freqMap)
       .attr('height', freqMap)
       .attr("href",function(d){return "pngs/PE_mainforms/"+d.word+".trans.png";});
+
   //set image event
-  var imageEvent = image.on("mouseover", function(d) {
+  var imageEvent = image
+  .on("mouseover", function(d) {
       // select element in current context
       wordembedtip.transition()
            .duration(200)
@@ -102,7 +98,7 @@ d3.csv("image_embed_subset.csv", function(error, data) {
        .attr("href", function(d){return "pngs/PE_mainforms/"+d.word+".png";})
        .attr("height", 100)
        .attr("width", 100);
-         })
+     })
     .on("mouseout", function(d) {
         wordembedtip.transition()
              .duration(500)
@@ -112,13 +108,17 @@ d3.csv("image_embed_subset.csv", function(error, data) {
          .attr("href",function(d){return "pngs/PE_mainforms/"+d.word+".trans.png";})
          .attr("height",freqMap)
          .attr("width", freqMap);
-           })
+     })
     .on('click', function(d){
       document.getElementById("center_sign").value = d.word;
       console.log(document.getElementById("center_sign").value);
       change_focus();
     });
 
+
+    function zoomed() {
+      svg.attr("transform", d3.event.transform);
+    };
 });
 
 
