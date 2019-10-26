@@ -60,7 +60,7 @@ d3.csv("image_embed_subset.csv", function(error, data) {
 
   svg.call(d3.zoom()
       .extent([[0, 0], [width, height]])
-      .scaleExtent([1, 10])
+      .scaleExtent([1, 8])
       .on("zoom", zoomed));
 
   // draw dots
