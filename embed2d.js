@@ -58,10 +58,20 @@ d3.csv("image_embed_subset.csv", function(error, data) {
       .attr("class", "yAxis")
       .call(yAxis);
 
-  svg.call(d3.zoom()
-      .extent([[0, 0], [width, height]])
-      .scaleExtent([1, 8])
-      .on("zoom", zoomed));
+  // make whole background zoomable/draggable
+  svg.append("rect")
+      .attr("x", 0)
+      .attr("y", 0)
+      .attr("width", widthE)
+      .attr("height", heightE)
+      .style("fill", "white")
+  //svg
+      .call(d3.zoom()
+	.extent([[0, 0], [width, height]])
+	.scaleExtent([1, 8])
+        .on("zoom", zoomed)
+      )
+  ;
 
   // draw dots
   var dot = svg.selectAll(".dot")
@@ -76,7 +86,8 @@ d3.csv("image_embed_subset.csv", function(error, data) {
   //     .style('opacity', 0.3);
   var image = dot.enter()
       .append('image')
-      .attr('id', "embed_img")
+      .classed("embed_img",true)
+      //.attr('id', "embed_img")
       .attr('x', xMap)
       .attr('y', yMap)
       .attr('width', freqMap)
@@ -117,7 +128,12 @@ d3.csv("image_embed_subset.csv", function(error, data) {
 
 
     function zoomed() {
-      svg.attr("transform", d3.event.transform);
+      d3.selectAll(".embed_img").attr("transform", d3.event.transform);
+      // scale images to spread out the dense clusters when zoomed in
+      d3.selectAll(".embed_img").attr("width", function(d){return freqMap(d)/Math.sqrt(d3.event.transform.k);});
+
+      //d3.selectAll(".embed_img").attr("transform", "scale(" + (1/d3.event.transform.k) +")");
+      //console.log(d3.event.transform.k);
     };
 });
 
