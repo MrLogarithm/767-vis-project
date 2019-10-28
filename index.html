@@ -12,6 +12,12 @@
   </head>
   <meta charset="UTF-8">
   <style>
+    .tablet_preview {
+      width: 400px;
+      background:#ddd;
+      float:left;
+      margin:1em;
+    }
     .node image {
       stroke: steelblue;
       stroke-width: 3px;
@@ -52,16 +58,17 @@
       <rect x="-30" y="-15" width="60" height="30" fill="white" />
     </mask>
   </svg>
+  <script src="tree.js"></script>
   <input type="text" style="position:relative;left:-535px;top:-400px;" size=3 onchange="change_focus()" id="center_sign" value="M217"/>
   </div>
 
 
+  <script src="tablets.js"></script>
   <div id="tablet_previews">
     Tablet previews will go here.
   </div>
 
 
-<script src="tree.js"></script>
 <script>
 $().ready( function(){
   // Get ngram data as JSON:
@@ -79,13 +86,21 @@ $().ready( function(){
          success:function(result) {
            embeddings = result;
            console.log("Loaded sign embeddings");
-           setup("right");
-           setup("left");
+	   $.get({
+             url: "https://mrlogarithm.github.io/767-vis-project/translits.txt",
+             //url: "pe.vec.json",
+             dataType:'text',
+             success:function(result) {
+	       transliterations = result.split("\n");
+               setup("right");
+               setup("left");
+	     }
+	   })
+	 }});
          }
        });
      }
-   });
-});
+   );
 
 //////////////////////////////////////////////////
 // NEAREST NEIGHBORS

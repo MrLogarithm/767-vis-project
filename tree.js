@@ -50,7 +50,7 @@ function change_focus() {
   selected = {"left":[], "right":[]};
   setup("left");
   setup("right");
-  console.log("hello " + new_focus);
+  //console.log("hello " + new_focus);
 }
 
 // Memoization speeds this up by a factor of ~10!
@@ -129,7 +129,6 @@ function grey(node, dir){
   var n=d3.selectAll("#"+dir+"_"+(node.depth)+"_"+node.data.name);
   n.style("fill","#555");
   if ( node.children ) {
-    console.log("recurring");
     node.children.forEach( function(d){grey(d,dir)} );
   }
 }
@@ -138,17 +137,17 @@ function recolor(node,dir,prune) {
   // for each child, if not exist, remove click() and grey out
   if ( node.children ) {
     for ( var i = 0; i < node.children.length; i++ ) {
-      console.log("Should I prune"+node.children[i].data.name+"?");
+      //console.log("Should I prune"+node.children[i].data.name+"?");
       var found = false;
       var foundIndex = 0;
       if (prune.children){
 	for ( var k = 0; k < prune.children.length; k++ ) {
-	  console.log( 
-	    "DEBUG",
-	    node.children[i].data.name,
-	    prune.children[k].data.name,
-	    node.children[i].data.name == prune.children[k].data.name 
-	  );
+	  //console.log( 
+	    //"DEBUG",
+	    //node.children[i].data.name,
+	    //prune.children[k].data.name,
+	    //node.children[i].data.name == prune.children[k].data.name 
+	  //);
 	  if ( node.children[i].data.name == prune.children[k].data.name ) {
 	    found = true;
 	    break;
@@ -156,11 +155,11 @@ function recolor(node,dir,prune) {
         }
       }
       if (found) {
-	console.log("No!");
+	//console.log("No!");
         //d3.selectAll("#"+dir+"_"+(node.depth+1)+"_"+node.children[i].data.name+"_img").style("filter","invert(0)");
         recolor(node.children[i], dir, prune.children[k]);
       } else {
-	console.log("Yes!");
+	//console.log("Yes!");
         //d3.selectAll("#"+dir+"_"+(node.depth+1)+"_"+node.children[i].data.name).style("fill","#555");
         //grey( d3.selectAll("#"+dir+"_"+(node.depth+1)+"_"+node.children[i].data.name) );
         grey( node.children[i], dir );
@@ -221,14 +220,14 @@ function update(source, dir="right", propagate=false, reselect=false) {
   }
   nodes.forEach(function(d){ d.y = (ROOT_OFFSET + width / 2) + d.depth * LAYER_SPACE; });
   if ( reselect ) {
-    console.log("Not changing the selection, because I'm just pruning the tree");
+    //console.log("Not changing the selection, because I'm just pruning the tree");
   } else {
     if ( source.children ) {
-      console.log("I think you expanded " + source.data.name);
+      //console.log("I think you expanded " + source.data.name);
       selected[dir] = [source];
       ctx[dir] = source.data.name;
     } else {
-      console.log("I think you collapsed " + source.data.name);
+      //console.log("I think you collapsed " + source.data.name);
       selected[dir] = [];
       ctx[dir] = "";
     }
@@ -248,14 +247,14 @@ function update(source, dir="right", propagate=false, reselect=false) {
     selected[dir].reverse();
   }
   if (propagate) {
-    console.log("need to update ~"+dir+"  tree with ctx " + ctx[dir]);
+    //console.log("need to update ~"+dir+"  tree with ctx " + ctx[dir]);
     var otherDir = ( dir == "left" ) ? "right" : "left";
     update(root[otherDir],  otherDir, propagate=false, reselect=true);
     refresh_pruned_tree(otherDir);
     recolor(root[otherDir],otherDir,prune[otherDir]);
   }
   ctx[dir] = ctx[dir].trim();
-  console.log(ctx[dir], dir);
+  //console.log(ctx[dir], dir);
 
   // ****************** Nodes section ***************************
 
@@ -418,6 +417,8 @@ function update(source, dir="right", propagate=false, reselect=false) {
 
   refresh_pruned_tree(dir);
   recolor(root[dir],dir,prune[dir]);
+
+  grep_tablets( ctx );
 }
 
 
@@ -443,9 +444,9 @@ function update(source, dir="right", propagate=false, reselect=false) {
 	}).forEach(collapse);
     }
     //*/
-    console.log("updating other side:");
-    console.log("source is");
-    console.log(d);
-    console.log(dir);
+    //console.log("updating other side:");
+    //console.log("source is");
+    //console.log(d);
+    //console.log(dir);
     update(d,dir=dir,propagate=true,reselect=false);
   }
