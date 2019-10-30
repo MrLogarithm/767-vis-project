@@ -26,7 +26,7 @@ function grep_tablets( selection ) {
     var preview = document.createElement( "div" );
     preview.className = "tablet_preview";
     var split_tablet = tablets_with_string[i];
-    preview.innerHTML = split_tablet[0]+"<br/>"; // CDLI Number
+    preview.innerHTML = "<a href='https://cdli.ucla.edu/search/archival_view.php?ObjectID="+split_tablet[0]+"'>"+split_tablet[0]+"</a><br/>"; // CDLI Number
     for ( var j = 1; j < split_tablet.length; j++ ) {
       //preview.innerHTML += "<img src='pngs/PE_mainforms/"+"M388"+".png' alt='"+split_tablet[j]+"' style='height:12px;width:12px;'/>";
 	preview.innerHTML += "<span id='char_"+i+"_"+j+"'>"+split_tablet[j]+" </span>";

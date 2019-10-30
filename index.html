@@ -13,10 +13,10 @@
   <meta charset="UTF-8">
   <style>
     .tablet_preview {
-      width: 400px;
-      background:#ddd;
+      width: 360px;
+      background:#f0f0f0;
       float:left;
-      margin:1em;
+      margin:20px;
     }
     .node image {
       stroke: steelblue;
@@ -39,6 +39,27 @@
       height: 45px;
       pointer-events: none;
       background-color: white;
+      padding:5px;
+    }
+
+    #embedding_window {
+      border: 1px solid black;
+      width:400px;
+      float: left;
+    }
+    #svg_trees{ 
+      float:right;
+      width:795px;
+      height:800px;
+    }
+    html {
+      background:#fff;
+    }
+    body {
+      background: #fff;
+      max-width:1200px;
+      min-width:1200px;
+      width:1200px;
     }
 
   </style>
@@ -52,14 +73,17 @@
   <script src="embed2d.js"></script>
 
   <!-- TREE -->
-  <div style="margin-top:0;">
+  <div style="margin-left:400px;height:800;width:800;">
+    <div style="padding-left:30px;">
+      Dispersion: <input type="range" min="1" max="20" value="10" id="slider_dispersion" onchange="wheelHandler()" />
+    </div>
+  <input type="text" style="position:absolute;left:780px;top:420px;" size=3 onchange="change_focus()" id="center_sign" value="M217"/>
   <svg id="svg_trees">
     <mask id="myMask">
       <rect x="-30" y="-15" width="60" height="30" fill="white" />
     </mask>
   </svg>
   <script src="tree.js"></script>
-  <input type="text" style="position:relative;left:-535px;top:-240px;" size=3 onchange="change_focus()" id="center_sign" value="M217"/>
   </div>
 
 

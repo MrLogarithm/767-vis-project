@@ -2,10 +2,34 @@ var ngram_counts;
 var embeddings;
 
 // Set the dimensions and margins of the diagram
-var margin = {top: 20, right: 90, bottom: 30, left: 90},
-    width = 1000 - margin.left - margin.right,
-    height = 500 - margin.top - margin.bottom;
+var margin = {top: 20, right: 20, bottom: 20, left: 20},
+    width =  795 - margin.left - margin.right,
+    height = 800 - margin.top - margin.bottom;
 var imgsize = 35;
+
+var tree_zoom_handler = d3.zoom()
+.on("zoom", function() {
+  // Disable move on scroll
+  //console.log(d3.event.transform);
+});
+
+function scrollMapTransform( d ) {
+  var offset = scrollMap(d);
+  return "translate("+d.y+","+offset+")";
+}
+function scrollMap( d ) {
+    //console.log(d.x + " " + d.data.name);
+    var half_ht = height/2;
+    var offset;
+  var dispersion = (20-parseInt(document.getElementById("slider_dispersion").value))/20;
+  // TODO customize focus bubble size or adjust to tree density
+    if ( d.x <= focus_height ) {
+      offset = half_ht * (1 - Math.abs((d.x-focus_height)/focus_height)**dispersion);
+    } else {
+      offset = half_ht * (1 + ((d.x-focus_height)/(height - focus_height))**dispersion);
+    }
+    return offset;
+  }
 
 // appends a 'group' element to 'svg'
 // moves the 'group' element to the top left margin
@@ -15,7 +39,46 @@ var svg_tree = d3.select("#svg_trees")
     .append("g")
     .attr("transform",
       "translate("+ margin.left + "," + margin.top + ")"
-    );
+    )
+;
+svg_tree
+.append("rect")
+.attr("x",0)
+.attr("y",0)
+.attr("width",width)
+.attr("height",height)
+.style("fill","white")
+.lower()
+.on("wheel", wheelHandler)
+.call(tree_zoom_handler)
+
+function wheelHandler(){
+  if (d3.event){
+  focus_height += d3.event.deltaY;
+  focus_height = (focus_height < 0) ?
+    0 :
+    (focus_height > height) ?
+      height :
+      focus_height;
+  }
+
+  $("#center_sign").css('top', scrollMap(root.left)+40);
+  d3.selectAll("g.node").attr("transform", scrollMapTransform)
+
+  d3.selectAll('path.link')//.transition()
+      //.duration(duration)
+      .attr('d', function(d){ return diagonal(d, d.parent) });
+}
+/*.enter().append("rect")
+.attr("width",width)
+.attr("height",height)
+.attr("x",0)
+.attr("y",0)
+.style("fill","white")
+.on('scroll',function(test){
+  console.log("test");
+})*/
+;
 
 var i = 0;
 var duration = 0;
@@ -34,7 +97,7 @@ var treemap = {
 var corr = "corrections included";
 var vars = "variants separate";
 
-
+var focus_height = height/2;
 
 
 function change_focus() {
@@ -57,6 +120,7 @@ function change_focus() {
 var memoize = new Object();
 function get_treedata( sign, depth, dir ) {
 
+  // TODO if string does not exist in corpus does this add it permanently to memoize?
   if ( memoize[sign+depth+dir] ){
     return memoize[sign+depth+dir];
   } else {
@@ -212,10 +276,10 @@ function update(source, dir="right", propagate=false, reselect=false) {
   // Normalize for fixed-depth.
   var LAYER_SPACE, ROOT_OFFSET;
   if ( dir == "left" ) {
-    LAYER_SPACE = -50;
+    LAYER_SPACE = -65;
     ROOT_OFFSET = 0;
   } else {
-    LAYER_SPACE = 50;
+    LAYER_SPACE = 65;
     ROOT_OFFSET = 0;
   }
   nodes.forEach(function(d){ d.y = (ROOT_OFFSET + width / 2) + d.depth * LAYER_SPACE; });
@@ -275,6 +339,10 @@ function update(source, dir="right", propagate=false, reselect=false) {
       })
       .on('click', function(d){click(d,dir)})
       .attr('cursor', 'pointer')
+  .on('scroll', function() {
+    console.log("hi");
+  });
+
   ;
 
   // Add Circle for the nodes
@@ -322,7 +390,7 @@ function update(source, dir="right", propagate=false, reselect=false) {
           return (d.depth == 0)
 	    ? ""
 	    : (d.children || d._children
-	      ? d.data.name.replace("unk","[...]")
+	      ? d.data.name.replace("unk","[...]").replace("x","+")
 	      : "" );
         });
 
@@ -332,9 +400,11 @@ function update(source, dir="right", propagate=false, reselect=false) {
   // Transition to the proper position for the node
   nodeUpdate.transition()
     .duration(duration)
-    .attr("transform", function(d) {
-        return "translate(" + d.y + "," + d.x + ")";
-     });
+    .attr("transform", scrollMapTransform
+      //function(d) {
+        //return "translate(" + d.y + "," + d.x + ")";
+     //}
+    );
 
   /*
   // Update the node attributes and style
@@ -368,7 +438,9 @@ function update(source, dir="right", propagate=false, reselect=false) {
   var linkEnter = link.enter().insert('path', "g")
       .attr("class", "link "+dir)
       .attr('d', function(d){
-        var o = {x: source.x0, y: source.y0}
+        var o = {x: 
+	  source.x0
+	  , y: source.y0}
         return diagonal(o, o)
       });
 
@@ -376,8 +448,8 @@ function update(source, dir="right", propagate=false, reselect=false) {
   var linkUpdate = linkEnter.merge(link);
 
   // Transition back to the parent element position
-  linkUpdate.transition()
-      .duration(duration)
+  linkUpdate//.transition()
+      //.duration(duration)
       .attr('d', function(d){ return diagonal(d, d.parent) });
 
   // Remove any exiting links
@@ -396,16 +468,6 @@ function update(source, dir="right", propagate=false, reselect=false) {
   });
 
   // Creates a curved (diagonal) path from parent to the child nodes
-  function diagonal(s, d) {
-
-    path = `M ${s.y} ${s.x}
-            C ${(s.y + d.y) / 2} ${s.x},
-              ${(s.y + d.y) / 2} ${d.x},
-              ${d.y} ${d.x}`
-
-    return path
-  }
-
 
   d3.selectAll("circle.node."+dir).style("fill",function(d){
     if (( selected[dir][d.depth] ) && (selected[dir][d.depth].data.name == d.data.name )) {
@@ -450,3 +512,13 @@ function update(source, dir="right", propagate=false, reselect=false) {
     //console.log(dir);
     update(d,dir=dir,propagate=true,reselect=false);
   }
+  function diagonal(s, d) {
+
+    path = `M ${s.y} ${scrollMap(s)}
+            C ${(s.y + d.y) / 2} ${scrollMap(s)},
+              ${(s.y + d.y) / 2} ${scrollMap(d)},
+              ${d.y} ${scrollMap(d)}`
+
+    return path
+  }
+
