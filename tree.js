@@ -15,21 +15,37 @@ var tree_zoom_handler = d3.zoom()
 
 function scrollMapTransform( d ) {
   var offset = scrollMap(d);
-  return "translate("+d.y+","+offset+")";
-}
-function scrollMap( d ) {
-    //console.log(d.x + " " + d.data.name);
-    var half_ht = height/2;
-    var offset;
-  var dispersion = (20-parseInt(document.getElementById("slider_dispersion").value))/20;
-  // TODO customize focus bubble size or adjust to tree density
-    if ( d.x <= focus_height ) {
-      offset = half_ht * (1 - Math.abs((d.x-focus_height)/focus_height)**dispersion);
-    } else {
-      offset = half_ht * (1 + ((d.x-focus_height)/(height - focus_height))**dispersion);
-    }
-    return offset;
+  var size = 1;
+  if (document.getElementById("check_scale").checked){
+    size = scaleByFreq(d);
+    var minScale = 1;
+    size = size<minScale?minScale:size;
   }
+  return "translate("+d.y+","+offset+") scale("+size+")";
+}
+function sigmoidDispersion( dx, usable_space ) {
+  dx /= 100;
+  return height / (1 + Math.exp(-1*dispersion * dx));
+}
+function polynomialDispersion( dx, space ) {
+  var half_ht = height/2;
+  if ( dx < 0 ) {
+    return half_ht * (1 - Math.abs(dx/space)**dispersion);
+  } else {
+    return half_ht * (1 + (dx/space)**dispersion);
+  }
+}
+var dispersionMetric = sigmoidDispersion;
+function scrollMap( d ) {
+  // Force root to center
+  if ( d == root.left || d == root.right ) {
+    d.x = height/2;
+  }
+  var offset;
+  var dx = d.x - focus_height
+  var space = dx < 0 ? focus_height : height-focus_height;
+  return dispersionMetric( dx, space );
+}
 
 // appends a 'group' element to 'svg'
 // moves the 'group' element to the top left margin
@@ -52,14 +68,17 @@ svg_tree
 .on("wheel", wheelHandler)
 .call(tree_zoom_handler)
 
+var dispersion=1;
+
 function wheelHandler(){
+  dispersion = (20-parseInt(document.getElementById("slider_dispersion").value))/20;
   if (d3.event){
-  focus_height += d3.event.deltaY;
-  focus_height = (focus_height < 0) ?
-    0 :
-    (focus_height > height) ?
-      height :
-      focus_height;
+    focus_height += d3.event.deltaY;
+    focus_height = (focus_height < 0) ?
+      0 :
+      (focus_height > height) ?
+        height :
+        focus_height;
   }
 
   $("#center_sign").css('top', scrollMap(root.left)+40);
@@ -329,9 +348,10 @@ function update(source, dir="right", propagate=false, reselect=false) {
   // Enter any new nodes at the parent's previous position.
   var nodeEnter = node.enter().append('g')
       .attr('class', 'node '+dir)
-      .attr("transform", function(d) {
-        return "translate(" + source.y0 + "," + source.x0 + ")";
-       });
+      //.attr("transform", function(d) {
+      //  return "translate(" + source.y0 + "," + source.x0 + ")";
+      // })
+  ;
 
   nodeEnter
       .filter(function(d){
@@ -339,10 +359,6 @@ function update(source, dir="right", propagate=false, reselect=false) {
       })
       .on('click', function(d){click(d,dir)})
       .attr('cursor', 'pointer')
-  .on('scroll', function() {
-    console.log("hi");
-  });
-
   ;
 
   // Add Circle for the nodes
@@ -353,7 +369,7 @@ function update(source, dir="right", propagate=false, reselect=false) {
       .append('circle')
       .attr('id', function(d){return dir+"_"+d.depth+"_"+d.data.name})
       .attr('class', "node "+dir)
-      .attr('r', imgsize/2.5)
+      .attr('r', imgsize/3)
       .style("fill","red")
       .attr('cy', 0)
       .attr('cx',imgsize/2 - (dir=="left"?imgsize:0))
@@ -365,12 +381,14 @@ function update(source, dir="right", propagate=false, reselect=false) {
         return d.parent;
       })
       .append('image')
+      .classed("node",true)
       .attr('id', function(d){return dir+"_"+d.depth+"_"+d.data.name+"_img"})
       .attr('y', -imgsize/2)
       .attr('x',(dir=="left")?-imgsize:0)
       .attr('width', imgsize)
       .attr('height', imgsize)
       .attr("href",function(d){return "pngs/PE_mainforms/"+d.data.name+".trans.png";})
+  .attr("onerror", "this.style.display='none'")
   ;
 
   // Add labels for the nodes
@@ -378,7 +396,7 @@ function update(source, dir="right", propagate=false, reselect=false) {
         .attr("dy", function(d) {
           return ( d.data.name == "unk" || d.data.name == "X" )
 	    ? "5"
-	    : "-1.15em";
+	    : "-1em";
 	})
         .attr("dx", function(d){
 	  return (dir=="left")
@@ -390,7 +408,7 @@ function update(source, dir="right", propagate=false, reselect=false) {
           return (d.depth == 0)
 	    ? ""
 	    : (d.children || d._children
-	      ? d.data.name.replace("unk","[...]").replace("x","+")
+	      ? d.data.name.replace("unk","[...]").replace("x","+").replace('lpar','(').replace('rpar',')')
 	      : "" );
         });
 
@@ -401,20 +419,7 @@ function update(source, dir="right", propagate=false, reselect=false) {
   nodeUpdate.transition()
     .duration(duration)
     .attr("transform", scrollMapTransform
-      //function(d) {
-        //return "translate(" + d.y + "," + d.x + ")";
-     //}
     );
-
-  /*
-  // Update the node attributes and style
-  nodeUpdate.select('circle.node.'+dir)
-    //.attr('r', 10)
-    //.style("fill", function(d) {
-        //return d._children ? "lightsteelblue" : "#fff";
-    //})
-  ;*/
-
 
   // Remove any exiting nodes
   var nodeExit = node.exit().transition()
@@ -522,3 +527,17 @@ function update(source, dir="right", propagate=false, reselect=false) {
     return path
   }
 
+  function scaleToggle(){
+  }
+  function scaleByFreq(d){
+    if ( d.data.name == "BEGIN" || d.data.name == "END" ) {
+      return 0.5;
+    }
+    var freq = Math.log(ngram_counts["corrections included"]["variants separate"][d.data.name])/(Math.log(10)*2);
+    //console.log(freq);
+    if (freq !== undefined) {
+      return freq;
+      //return 1;
+    }
+    console.log("ERROR!",d);
+  }
