@@ -48,20 +48,21 @@ var wordembedtip = d3.select("body").append("div")
 
 d3.csv("image_embed_subset.csv", function(error, data) {
   // don't want dots overlapping axis, so add in buffer to data domain
-  xScale.domain([d3.min(data, xValue)-3, d3.max(data, xValue)+4]).nice();
-  yScale.domain([d3.min(data, yValue)-4, d3.max(data, yValue)+4]).nice();
+  xScale.domain([d3.min(data, xValue)-2.5, d3.max(data, xValue)+1]).nice();
+  yScale.domain([d3.min(data, yValue)-4, d3.max(data, yValue)+3]).nice();
   freqScale.domain([d3.min(data, freqValue) , d3.max(data, freqValue)] ).nice();
 
-  svg.append("g")
-      .attr("class", "xAxis")
-      .classed("scalable",true)
-      .attr("transform", "translate(0," + heightE + ")")
-      .call(xAxis);
+  //get rid of x,y axis
+  //svg.append("g")
+  //    .attr("class", "xAxis")
+  //    .classed("scalable",true)
+  //    .attr("transform", "translate(0," + heightE + ")")
+  //    .call(xAxis);
   // y-axis
-  svg.append("g")
-      .attr("class", "yAxis")
-      .classed("scalable",true)
-      .call(yAxis);
+  //svg.append("g")
+  //    .attr("class", "yAxis")
+  //    .classed("scalable",true)
+  //    .call(yAxis);
 
   // draw dots
   var dot = svg.selectAll(".dot")
@@ -148,128 +149,3 @@ d3.csv("image_embed_subset.csv", function(error, data) {
     };
 });
 
-
-// x = d3.scaleLinear()
-//     .domain(d3.extent(embed2d_data, d => d.embed_pca_x)).nice()
-//     .range([margin.left, width - margin.right]);
-//
-// y = d3.scaleLinear()
-//     .domain(d3.extent(embed2d_data, d => d.embed_pca_y)).nice()
-//     .range([height - margin.bottom, margin.top]);
-//
-// xAxis = g => g
-//     .attr("transform", `translate(0,${height - margin.bottom})`)
-//     .call(d3.axisBottom(x))
-//     .call(g => g.select(".domain").remove())
-//     .call(g => g.append("text")
-//         .attr("x", width - margin.right)
-//         .attr("y", -4)
-//         .attr("fill", "#000")
-//         .attr("font-weight", "bold")
-//         .attr("text-anchor", "end")
-//         .text(embed2d_data.embed_pca_x));
-//
-// yAxis = g => g
-//     .attr("transform", `translate(${margin.left},0)`)
-//     .call(d3.axisLeft(y))
-//     .call(g => g.select(".domain").remove())
-//     .call(g => g.select(".tick:last-of-type text").clone()
-//         .attr("x", 4)
-//         .attr("text-anchor", "start")
-//         .attr("font-weight", "bold")
-//               .text(embed2d_data.embed_pca_y));
-
-// // chart = {
-// var svg = d3.select('#embedding_window');
-// svg.create("svg").attr("viewBox", [0, 0, width, height]);
-//
-// svg.append("g")
-//     .call(xAxis);
-//
-// svg.append("g")
-//     .call(yAxis);
-//
-// svg.append("g")
-//     .attr("stroke-width", 1.5)
-//     .attr("font-family", "sans-serif")
-//     .attr("font-size", 10)
-//   .selectAll("g")
-//   .data(embed2d_data)
-//   .join("g")
-//     .attr("transform", d => `translate(${x(d.x)},${y(d.y)})`)
-//     .call(g => g.append("circle")
-//         .attr("stroke", "steelblue")
-//         .attr("fill", "none")
-//         .attr("r", 3))
-//     .call(g => g.append("text")
-//         .attr("dy", "0.35em")
-//         .attr("x", 7)
-//         .text(d => d.name));
-
-  // return svg.node();
-// };
-
-
-//
-// // set embedding plot frame
-// var svg = d3.select("#embedding_window")
-//     .append('svg')
-//     // .append("g")
-//     .attr("width", width + margin.right + margin.left)
-//     .attr("height", height + margin.top + margin.bottom)
-
-    // .attr("transform",
-    //   "translate("+ margin.left + "," + margin.top + ")"
-    // );
-//
-// svg.append("rect")
-//             .attr("x", 0)
-//             .attr("y", 0)
-//             .attr("width", 200)
-//             .attr("height", 100).attr('color','red');
-
-// xAxis = {
-//   const axis = d3.axisBottom()
-//       .ticks(6)
-//       .tickSize(size * columns.length);
-//   return g => g.selectAll("g").data(x).join("g")
-//       .attr("transform", (d, i) => `translate(${i * size},0)`)
-//       .each(function(d) { return d3.select(this).call(axis.scale(d)); })
-//       .call(g => g.select(".domain").remove())
-//       .call(g => g.selectAll(".tick line").attr("stroke", "#ddd"));
-// }
-
-
-// yAxis = {
-//   const axis = d3.axisLeft()
-//       .ticks(6)
-//       .tickSize(-size * columns.length);
-//   return g => g.selectAll("g").data(y).join("g")
-//       .attr("transform", (d, i) => `translate(0,${i * size})`)
-//       .each(function(d) { return d3.select(this).call(axis.scale(d)); })
-//       .call(g => g.select(".domain").remove())
-//       .call(g => g.selectAll(".tick line").attr("stroke", "#ddd"));
-// }
-//
-// svg.append("g")
-//     .call(xAxis);
-//
-// svg.append("g")
-//     .call(yAxis);
-
-// svg.append("g")
-//     .attr("stroke-width", 1.5)
-//     .attr("font-family", "sans-serif")
-//     .attr("font-size", 10)
-//   .selectAll("g")
-//   .data(data)
-//   .join("g")
-//     .attr("transform", d => `translate(${x(d.x)},${y(d.y)})`)
-//     .call(g => g.append("circle")
-//         .attr("stroke", "steelblue")
-//         .attr("fill", "none")
-//         .attr("r", 3))
-//     .call(g => g.append("text")
-//         .attr("dy", "0.35em")
-//         .attr("x", 7)
-//         .text(d => d.name));
