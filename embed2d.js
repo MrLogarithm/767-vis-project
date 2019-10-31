@@ -9,16 +9,21 @@ const marginE = {top: 20, right: 20, bottom: 30, left: 40},
  * axis - sets up axis
  */
 
+//var myEmbed_method = 'PCA';
 // setup x
+//var xValue = function(d, myEmbed_method) { if (myEmbed_method =="PCA") {return d.embed_pca_x;}
+//				else if (myEmbed_method == "tSNE") {return d.embed_tsne_x;}},// data -> value
 var xValue = function(d) { return d.embed_pca_x;}, // data -> value
     xScale = d3.scaleLinear().range([0, widthE]), // value -> display
-    xMap = function(d) { return xScale(xValue(d));}, // data -> display
+//    xMap = function(d) { return xScale(xValue(d));}, // data -> display
     xAxis = d3.axisBottom().scale(xScale);
 
 // setup y
+//var yValue = function(d, myEmbed_method) { if (myEmbed_method =="PCA") {return d.embed_pca_y;}
+//				else if (myEmbed_method == "tSNE") {return d.embed_tsne_y;} },// data -> value
 var yValue = function(d) { return d.embed_pca_y;}, // data -> value
     yScale = d3.scaleLinear().range([ heightE, 0]), // value -> display
-    yMap = function(d) { return yScale(yValue(d));}, // data -> display
+//    yMap = function(d) { return yScale(yValue(d));}, // data -> display
     yAxis = d3.axisLeft().scale(yScale);
 
 // freq controls the word size
@@ -45,6 +50,8 @@ var svg = d3.select('#embedding_svg')
 var wordembedtip = d3.select("body").append("div")
     .attr("class", "wordembedtip")
     .style("opacity", 0);
+
+
 
 d3.csv("image_embed_subset.csv", function(error, data) {
   // don't want dots overlapping axis, so add in buffer to data domain
@@ -80,8 +87,8 @@ d3.csv("image_embed_subset.csv", function(error, data) {
       .classed("embed_img",true)
       .classed("scalable",true)
       //.attr('id', "embed_img")
-      .attr('x', xMap)
-      .attr('y', yMap)
+      .attr('x', function(d) { return xScale(d.embed_pca_x);})
+      .attr('y', function(d) { return xScale(d.embed_pca_y);})
       .attr('width',  freqMap)
       .attr('height', freqMap)
       .attr("href",function(d){return "pngs/PE_mainforms/"+d.word+".trans.png";});
@@ -147,5 +154,62 @@ d3.csv("image_embed_subset.csv", function(error, data) {
     //d3.selectAll(".embed_img").attr("transform", "scale(" + (1/d3.event.transform.k) +")");
     //console.log(d3.event.transform.k);
     };
+
+////drop down button to select the embedding method
+// Create data = list of groups
+var embed_methods = ["PCA", "tSNE"]
+
+// Initialize the button
+var dropdownButton = d3.select("#selectButton");
+
+// add the options to the button
+dropdownButton // Add a button
+  .selectAll('myOptions') // Next 4 lines add options 
+ 	.data(embed_methods)
+  .enter()
+	.append('option')
+  .text(function (d) { return d; }) // text showed in the menu
+  .attr("value", function (d) { return d; }) // corresponding value returned by the button
+
+// A function that update the embedding method to the plot
+function updateChart(myEmbed) {
+  var data_embed = data.map(
+	function(d) 
+	{ 
+		if (myEmbed =="PCA") {
+			return {x_embed: d.embed_pca_x, y_embed: d.embed_pca_y};
+		}
+		else if (myEmbed =="tSNE") {
+			return {x_embed: d.embed_tsne_x, y_embed: d.embed_tsne_y};
+		}
+	}
+  )
+
+  image
+	.data(data_embed)
+    .transition()
+    .duration(1000)
+    .attr('x', function(d) { return xScale(d.x_embed);})
+    .attr('y', function(d) { return xScale(d.y_embed);});
+
+  xValue = function(d) { return d.x_embed;};
+  yValue = function(d) { return d.y_embed;};
+  xScale.domain([d3.min(data, xValue)-2.5, d3.max(data, xValue)+1]).nice();
+  yScale.domain([d3.min(data, yValue)-4, d3.max(data, yValue)+3]).nice();
+  xAxis = d3.axisBottom().scale(xScale);
+  yAxis = d3.axisLeft().scale(yScale);
+//	xScale.domain([d3.min(data, function(d) { return data.x_embed;})-2.5, d3.max(data, function(data) { return data.x_embed;})+1]).nice();
+//	yScale.domain([d3.min(data, function(data) { return data.y_embed;})-4, d3.max(data, function(data) { return data.y_embed;})+3]).nice();
+}
+
+dropdownButton.on("change", function(d) {
+
+    // recover the option that has been chosen
+    var selectedOption = d3.select(this).property("value")
+
+    // run the updateChart function with this selected option
+    updateChart(selectedOption)
+})
+////drop down button end
 });
 
