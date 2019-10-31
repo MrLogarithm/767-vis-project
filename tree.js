@@ -4,7 +4,7 @@ var embeddings;
 // Set the dimensions and margins of the diagram
 var margin = {top: 20, right: 20, bottom: 20, left: 20},
     width =  795 - margin.left - margin.right,
-    height = 800 - margin.top - margin.bottom;
+    height = 700 - margin.top - margin.bottom;
 var imgsize = 35;
 
 var tree_zoom_handler = d3.zoom()
@@ -18,7 +18,7 @@ function scrollMapTransform( d ) {
   var size = 1;
   if (document.getElementById("check_scale").checked){
     size = scaleByFreq(d);
-    var minScale = 1;
+    var minScale = 0.75;
     size = size<minScale?minScale:size;
   }
   return "translate("+d.y+","+offset+") scale("+size+")";
@@ -36,6 +36,7 @@ function polynomialDispersion( dx, space ) {
   }
 }
 var dispersionMetric = sigmoidDispersion;
+//var dispersionMetric = polynomialDispersion;
 function scrollMap( d ) {
   // Force root to center
   if ( d == root.left || d == root.right ) {
@@ -81,7 +82,7 @@ function wheelHandler(){
         focus_height;
   }
 
-  $("#center_sign").css('top', scrollMap(root.left)+40);
+  $("#center_sign").css('top', scrollMap(root.left)+190);
   d3.selectAll("g.node").attr("transform", scrollMapTransform)
 
   d3.selectAll('path.link')//.transition()

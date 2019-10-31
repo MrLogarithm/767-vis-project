@@ -1,7 +1,7 @@
 //set embedding plot canvas size
 const marginE = {top: 20, right: 20, bottom: 30, left: 40},
-    widthE = 400 - marginE.left - marginE.right,
-    heightE = 400 - marginE.top - marginE.bottom;
+    widthE = 800 - marginE.left - marginE.right,
+    heightE = 150 - marginE.top - marginE.bottom;
 /*
  * value accessor - returns the value to encode for a given data object.
  * scale - maps value to a visual display encoding, such as a pixel position.
