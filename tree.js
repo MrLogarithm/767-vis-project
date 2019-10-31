@@ -82,7 +82,8 @@ function wheelHandler(){
         focus_height;
   }
 
-  $("#center_sign").css('top', scrollMap(root.left)+190);
+  $("#center_sign").css('top', scrollMap(root.left)+210);
+  $("#focus_img").css('top', scrollMap(root.left)+160);
   d3.selectAll("g.node").attr("transform", scrollMapTransform)
 
   d3.selectAll('path.link')//.transition()
@@ -122,6 +123,16 @@ var focus_height = height/2;
 
 function change_focus() {
   var new_focus = document.getElementById("center_sign").value;
+  while ( /\+|\(|\)|unk|\|/.test(new_focus)) {
+    new_focus = new_focus.replace("+","x").replace("(", "lpar").replace(")","rpar").replace("unk","[...]").replace("|","");
+  }
+  console.log("hello " + new_focus);
+  document.getElementById("center_sign").value = new_focus;
+  if ( new_focus.split(" ").length == 1 ) {
+    $("#focus_img").attr("src", "pngs/PE_mainforms/"+new_focus+".trans.png");
+  } else {
+    $("#focus_img").attr("src", "");
+  }
   ctx.left  = new_focus;
   ctx.right = new_focus;
   // change left and right contexts
@@ -133,14 +144,12 @@ function change_focus() {
   selected = {"left":[], "right":[]};
   setup("left");
   setup("right");
-  //console.log("hello " + new_focus);
 }
 
 // Memoization speeds this up by a factor of ~10!
 var memoize = new Object();
 function get_treedata( sign, depth, dir ) {
 
-  // TODO if string does not exist in corpus does this add it permanently to memoize?
   if ( memoize[sign+depth+dir] ){
     return memoize[sign+depth+dir];
   } else {
@@ -159,6 +168,14 @@ function get_treedata( sign, depth, dir ) {
       children.push( get_treedata(k, depth+1, dir) );
     }
   }
+  children.sort(
+  function(a,b){
+    /*var a_count = ngram_counts["corrections included"]["variants separate"][a.name];
+    var b_count = ngram_counts["corrections included"]["variants separate"][b.name];
+    return a_count > b_count ? 1 : a_count < b_count ? -1 : 0;
+    */
+    return a.name.localeCompare(b.name);
+  });
   var name = sign.split(" ");
   name = (dir == "left") ? name[0] : name[name.length-1];
   if ( children == [] ) {
@@ -486,7 +503,8 @@ function update(source, dir="right", propagate=false, reselect=false) {
   refresh_pruned_tree(dir);
   recolor(root[dir],dir,prune[dir]);
 
-  grep_tablets( ctx );
+  console.log(propagate,reselect,ctx);
+    grep_tablets( ctx );
 }
 
 

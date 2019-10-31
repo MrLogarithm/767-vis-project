@@ -1,5 +1,5 @@
 //set embedding plot canvas size
-const marginE = {top: 20, right: 20, bottom: 30, left: 40},
+const marginE = {top: 0, right: 0, bottom: 0, left: 0},
     widthE = 800 - marginE.left - marginE.right,
     heightE = 150 - marginE.top - marginE.bottom;
 /*
@@ -88,7 +88,7 @@ d3.csv("image_embed_subset.csv", function(error, data) {
       .classed("scalable",true)
       //.attr('id', "embed_img")
       .attr('x', function(d) { return xScale(d.embed_pca_x);})
-      .attr('y', function(d) { return xScale(d.embed_pca_y);})
+      .attr('y', function(d) { return yScale(d.embed_pca_y);})
       .attr('width',  freqMap)
       .attr('height', freqMap)
       .attr("href",function(d){return "pngs/PE_mainforms/"+d.word+".trans.png";});

@@ -1,16 +1,19 @@
 var transliterations;
 
 function grep_tablets( selection ) {
+  console.log("enter grep");
   var search_str = selection.left.split(" ");
-  search_str = search_str.slice(0,search_str.length-1).join(" ");
+  search_str = search_str.slice(0,search_str.length-(document.getElementById("center_sign").value.split(" ").length)).join(" ");
   search_str += " "+selection.right;
   search_str = search_str.replace("x","+").replace("lpar","(").replace("rpar",")").replace("unk","[...]").replace("x","+");
   while (/( |^)([^ |]*\+[^| ]*)( |$)/.test(search_str)) {
-    console.log(search_str);
+    console.log("replace",search_str);
     search_str = search_str.replace(/( |^)([^ |]*\+[^| ]*)( |$)/,
     function(match,p1,p2,p3){return " |"+p2+"| "} 
   )
+    console.log("replaced",search_str);
   }
+  console.log("untrim",search_str);
   search_str = search_str.trim();
   console.log(search_str);
 
