@@ -13,10 +13,11 @@
   <meta charset="UTF-8">
   <style>
     .tablet_preview {
-      width: 360px;
+      width: 355px;
       background:#f0f0f0;
       float:left;
       margin:20px;
+      padding: 5px;
     }
     .node image {
       stroke: steelblue;
@@ -76,7 +77,8 @@
   <!-- TREE -->
   <div style="margin-left:400px;height:800;width:800;">
     <div style="padding-left:30px;">
-      Dispersion: <input type="range" min="1" max="20" value="10" id="slider_dispersion" onchange="wheelHandler()" />
+      Dispersion: <input type="range" min="-19" max="19" value="0" id="slider_dispersion" onchange="wheelHandler()" />
+      Scale by frequency? <input type="checkbox" id="check_scale" onchange="wheelHandler()" />
     </div>
   <input type="text" style="position:absolute;left:780px;top:420px;" size=3 onchange="change_focus()" id="center_sign" value="M217"/>
   <svg id="svg_trees">

@@ -3,14 +3,25 @@ var transliterations;
 function grep_tablets( selection ) {
   var search_str = selection.left.split(" ");
   search_str = search_str.slice(0,search_str.length-1).join(" ");
-  search_str += " "+selection.right.trim();
-  //console.log(search_str);
+  search_str += " "+selection.right;
+  search_str = search_str.replace("x","+").replace("lpar","(").replace("rpar",")").replace("unk","[...]").replace("x","+");
+  while (/( |^)([^ |]*\+[^| ]*)( |$)/.test(search_str)) {
+    console.log(search_str);
+    search_str = search_str.replace(/( |^)([^ |]*\+[^| ]*)( |$)/,
+    function(match,p1,p2,p3){return " |"+p2+"| "} 
+  )
+  }
+  search_str = search_str.trim();
+  console.log(search_str);
 
   var tablets_with_string = [];
   for ( var i = 0; i < transliterations.length; i++ ) {
     if ( transliterations[i].includes(search_str) ) {
       //console.log( transliterations[i] );
       tablets_with_string.push( transliterations[i].split(" ") );
+      if ( tablets_with_string.length >= 5) {
+	break;
+      }
     }
   }
 
