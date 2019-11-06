@@ -9,8 +9,8 @@ function grep_tablets( selection ) {
   while (/( |^)([^ |]*\+[^| ]*)( |$)/.test(search_str)) {
     console.log("replace",search_str);
     search_str = search_str.replace(/( |^)([^ |]*\+[^| ]*)( |$)/,
-    function(match,p1,p2,p3){return " |"+p2+"| "} 
-  )
+      function(match,p1,p2,p3){return " |"+p2+"| "} 
+    )
     console.log("replaced",search_str);
   }
   console.log("untrim",search_str);
@@ -57,35 +57,15 @@ function myDiff( files, search_str ) {
   var open  = new Object();
   var pastFinds = new Object();
   var counter = 0;
+  // highlight the selected signs
   for ( var i = 0; i < files.length; i++ ) {
-    var len = search_str.trim().split(" ").length;
-    for ( var start = 0; start < files[i].length-len+1; start++ ){
-      var str = files[i].slice(start,start+len).join(" ");
-      if (str.trim() == search_str.trim()) {
-		  var whichFind;
-		  //console.log(pastFinds,pastFinds[str], str);
-		  if ( pastFinds[str] !== undefined ) {
-		    whichFind = pastFinds[str];
-		  } else {
-		    pastFinds[str] = counter;
-		    whichFind = counter++;
-		  }
-		  //console.log(pastFinds,pastFinds[str], str, whichFind);
-		  for ( var idx = start; idx < start+len; idx++ ) {
-		    var key = "#char_"+i+"_"+idx;
-		    open[key] = whichFind;
-		  }
-      }
-    }
-  }
-  for ( var i = 0; i < files.length; i++ ) {
+        for ( var j = i+1; j < files.length; j++ ) {
     for (var len = 5; len > 2; len-- ) {
       for ( var start = 0; start < files[i].length-len+1; start++ ){
         var str = files[i].slice(start,start+len).join(" ");
 	//if (str.includes("N")){
 	//  continue;
 	//}
-        for ( var j = i+1; j < files.length; j++ ) {
           //for (var len2 = 3; len2 < 4; len2++ ) {
 	  var len2 = len;
             for ( var start2 = 0; start2 < files[j].length+1-len2; start2++ ){
@@ -129,6 +109,27 @@ function myDiff( files, search_str ) {
 	    }
 	  //}
 	}
+      }
+    }
+  }
+  for ( var i = 0; i < files.length; i++ ) {
+    var len = search_str.trim().split(" ").length;
+    for ( var start = 0; start < files[i].length-len+1; start++ ){
+      var str = files[i].slice(start,start+len).join(" ");
+      if (str.trim() == search_str.trim()) {
+		  var whichFind;
+		  //console.log(pastFinds,pastFinds[str], str);
+		  if ( pastFinds[str] !== undefined ) {
+		    whichFind = pastFinds[str];
+		  } else {
+		    pastFinds[str] = counter;
+		    whichFind = counter++;
+		  }
+		  //console.log(pastFinds,pastFinds[str], str, whichFind);
+		  for ( var idx = start; idx < start+len; idx++ ) {
+		    var key = "#char_"+i+"_"+idx;
+		    open[key] = whichFind;
+		  }
       }
     }
   }

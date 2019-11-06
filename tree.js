@@ -13,13 +13,23 @@ var tree_zoom_handler = d3.zoom()
   //console.log(d3.event.transform);
 });
 
+function scaleByPosition( d, offset ) {
+  // This is the derivative of the sigmoidDispersion function
+  // but scaled so that it has a maximum value of 1
+  // (removed the `dispersion' from the numerator and added
+  // a factor of 4 to scale to the right height).
+  var dx = d.x - focus_height;
+  dx /= 100;
+  return 4*(Math.exp(-1*dispersion*dx)) / (1 + Math.exp(-1*dispersion*dx))**2;
+}
 function scrollMapTransform( d ) {
   var offset = scrollMap(d);
-  var size = 1;
+  var size = scaleByPosition(d, offset);
   if (document.getElementById("check_scale").checked){
-    size = scaleByFreq(d);
+    var scale = scaleByFreq(d);
     var minScale = 0.75;
-    size = size<minScale?minScale:size;
+    scale = scale<minScale?minScale:scale;
+    size *= scale;
   }
   return "translate("+d.y+","+offset+") scale("+size+")";
 }
@@ -43,7 +53,7 @@ function scrollMap( d ) {
     d.x = height/2;
   }
   var offset;
-  var dx = d.x - focus_height
+  var dx = d.x - focus_height;
   var space = dx < 0 ? focus_height : height-focus_height;
   return dispersionMetric( dx, space );
 }
@@ -67,7 +77,7 @@ svg_tree
 .style("fill","white")
 .lower()
 .on("wheel", wheelHandler)
-.call(tree_zoom_handler)
+.call(tree_zoom_handler) // disable scrolling when hovering on tree
 
 var dispersion=1;
 
@@ -82,13 +92,17 @@ function wheelHandler(){
         focus_height;
   }
 
-  $("#center_sign").css('top', scrollMap(root.left)+210);
-  $("#focus_img").css('top', scrollMap(root.left)+160);
+  // TODO?
+  // maybe scale center too?
+  $("#center_sign").css('top', scrollMap(root.left)+260);
+  $("#focus_img").css('top', scrollMap(root.left)+210);
   d3.selectAll("g.node").attr("transform", scrollMapTransform)
+  ;
 
   d3.selectAll('path.link')//.transition()
       //.duration(duration)
-      .attr('d', function(d){ return diagonal(d, d.parent) });
+      .attr('d', function(d){ return diagonal(d, d.parent) })
+  ;
 }
 /*.enter().append("rect")
 .attr("width",width)
@@ -122,6 +136,10 @@ var focus_height = height/2;
 
 
 function change_focus() {
+  var Process = function(start) {
+    this.start=start
+  }
+  Process.prototype.run = function(){
   var new_focus = document.getElementById("center_sign").value;
   while ( /\+|\(|\)|unk|\|/.test(new_focus)) {
     new_focus = new_focus.replace("+","x").replace("(", "lpar").replace(")","rpar").replace("unk","[...]").replace("|","");
@@ -142,8 +160,43 @@ function change_focus() {
   root = {"left":null, "right":null};
   prune = {"left":null, "right":null};
   selected = {"left":[], "right":[]};
-  setup("left");
-  setup("right");
+  //
+  for ( var i = 0; i < 2; i++ ) {
+    var dir = ["left","right"][i];
+    // Full tree rooted in focussed sign:
+    console.log(dir);
+    var treeData = get_treedata(
+      document.getElementById("center_sign").value,
+      document.getElementById("center_sign").value.split(" ").length,
+      dir
+    );
+
+    root[dir]  = d3.hierarchy(
+      treeData,
+      function(d) { return d.children; }
+    );
+  }
+
+  try {
+    var new_disp = -1*(Math.max(root.left.children.length, root.right.children.length));
+    new_disp = new_disp<-100?-100:
+      new_disp>-10?0:new_disp;
+    console.log(new_disp);
+    $("#slider_dispersion").val(new_disp);
+    dispersion = (20-new_disp)/20;
+  } catch (err) {
+    // In case the root doesn't exist yet
+  }
+
+    setup("left" );
+    setup("right" );
+  }
+  $("#loading").show();
+  $.ajax().done(function(){
+    var p = new Process();
+    p.run();
+    $("#loading").hide();
+  });
 }
 
 // Memoization speeds this up by a factor of ~10!
@@ -187,19 +240,28 @@ function get_treedata( sign, depth, dir ) {
   }
 }
 
+function noScroll(e) {
+  var e0 = e.originalEvent;
+  var delta = e0.wheelDelta || -e0.detail;
+  this.scrollTop += ( delta < 0 ? 1 : -1 )*30;
+  e.preventDefault();
+}
+function do_initial_tree_setup() {
+  d3.select("#center_sign")
+    .on("wheel", wheelHandler)
+    .on("zoom",function(){})
+  ;
+  $("#center_sign").on('mousewheel DOMMouseScroll', e=>noScroll(e) )
+  ;
+  d3.select("#focus_img")
+    .on("wheel", wheelHandler)
+    .on("zoom",function(){})
+  ;
+  $('#focus_img').on('mousewheel DOMMouseScroll', e=>noScroll(e) )
+  ;
+}
 
 function setup( dir, reselect=false ) {
-  // Full tree rooted in focussed sign:
-  var treeData = get_treedata(
-    document.getElementById("center_sign").value,
-    document.getElementById("center_sign").value.split(" ").length,
-    dir
-  );
-
-  root[dir]  = d3.hierarchy(
-    treeData,
-    function(d) { return d.children; }
-  );
   root[dir].x0 = height / 2;
   root[dir].y0 = width / 2;
   root[dir].data.name = document.getElementById("center_sign").value;
@@ -210,9 +272,11 @@ function setup( dir, reselect=false ) {
     root[dir].children.forEach(collapse);
     root[dir].children.forEach(function(d){expand_selected(d, dir);});
   }
+
   update(root[dir],  dir, propagate=false, reselect=reselect);
   refresh_pruned_tree(dir);
   recolor(root[dir],dir,prune[dir]);
+
 }
 
 
@@ -393,6 +457,8 @@ function update(source, dir="right", propagate=false, reselect=false) {
       .attr('cx',imgsize/2 - (dir=="left"?imgsize:0))
       .attr('width', imgsize)
       .attr('height', imgsize)
+.on("wheel", wheelHandler)
+.on("zoom",function(){}) // disable scrolling when hovering on tree
   ;
   nodeEnter
       .filter(function(d){
@@ -407,6 +473,8 @@ function update(source, dir="right", propagate=false, reselect=false) {
       .attr('height', imgsize)
       .attr("href",function(d){return "pngs/PE_mainforms/"+d.data.name+".trans.png";})
   .attr("onerror", "this.style.display='none'")
+.on("wheel", wheelHandler)
+.on("zoom",function(){}) // disable scrolling when hovering on tree
   ;
 
   // Add labels for the nodes
@@ -428,7 +496,10 @@ function update(source, dir="right", propagate=false, reselect=false) {
 	    : (d.children || d._children
 	      ? d.data.name.replace("unk","[...]").replace("x","+").replace('lpar','(').replace('rpar',')')
 	      : "" );
-        });
+        })
+.on("wheel", wheelHandler)
+.on("zoom",function(){}) // disable scrolling when hovering on tree
+  ;
 
   // UPDATE
   var nodeUpdate = nodeEnter.merge(node);
@@ -465,7 +536,10 @@ function update(source, dir="right", propagate=false, reselect=false) {
 	  source.x0
 	  , y: source.y0}
         return diagonal(o, o)
-      });
+      })
+.on("wheel", wheelHandler)
+.on("zoom",function(){}) // disable scrolling when hovering on tree
+  ;
 
   // UPDATE
   var linkUpdate = linkEnter.merge(link);
@@ -505,36 +579,44 @@ function update(source, dir="right", propagate=false, reselect=false) {
 
   console.log(propagate,reselect,ctx);
     grep_tablets( ctx );
+
+  $('.node').on('mousewheel DOMMouseScroll', e=>noScroll(e) )
+  $('.link').on('mousewheel DOMMouseScroll', e=>noScroll(e) )
 }
 
 
   function click(d, dir) {
-    if (d.children) {
-      d._children = d.children;
-      d.children = null;
+    if ( document.getElementById('check_recenter').checked ) {
+      document.getElementById('center_sign').value = d.data.name;
+      change_focus();
     } else {
-      d.children = d._children;
-      if (d.children){
-        d.children.forEach(collapse);
+      if (d.children) {
+        d._children = d.children;
+        d.children = null;
+      } else {
+        d.children = d._children;
+        if (d.children){
+          d.children.forEach(collapse);
+        }
+        d._children = null;
       }
-      d._children = null;
+      // Collapse sibling nodes to save space
+      // TODO Option to disable this? Might
+      // want to compare multiple subtrees.
+      /*
+      if ( d.parent ) {
+        d.parent.children.filter(
+	  function(dd){
+	    return d.data.name != dd.data.name
+	  }).forEach(collapse);
+      }
+      //*/
+      //console.log("updating other side:");
+      //console.log("source is");
+      //console.log(d);
+      //console.log(dir);
+      update(d,dir=dir,propagate=true,reselect=false);
     }
-    // Collapse sibling nodes to save space
-    // TODO Option to disable this? Might
-    // want to compare multiple subtrees.
-    /*
-    if ( d.parent ) {
-      d.parent.children.filter(
-	function(dd){
-	  return d.data.name != dd.data.name
-	}).forEach(collapse);
-    }
-    //*/
-    //console.log("updating other side:");
-    //console.log("source is");
-    //console.log(d);
-    //console.log(dir);
-    update(d,dir=dir,propagate=true,reselect=false);
   }
   function diagonal(s, d) {
 
