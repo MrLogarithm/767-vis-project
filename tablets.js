@@ -99,7 +99,7 @@ function myDiff( files, search_str ) {
     for (var len = 5; len > 1; len-- ) {
       for ( var start = 0; start < files[i].length-len+1; start++ ){
         var str = files[i].slice(start,start+len).join(" ");
-	  if (str.includes("N")){
+	  if (str.includes("N") || !str.includes("M")){
 	    continue;
 	  }
           //for (var len2 = 3; len2 < 4; len2++ ) {
