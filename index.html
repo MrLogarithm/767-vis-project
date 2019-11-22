@@ -48,7 +48,7 @@
       width:800px;
       height:200px;
     }
-    #svg_trees{ 
+    #svg_trees{
       float:left;
       width:795px;
       height:700px;
@@ -92,9 +92,13 @@
 
   <!-- EMBED -->
   <div id="embedding_window">
-    <!--
+
       <select id="selectButton" style="position:absolute;left:8px;top:8px;"></select>
-    -->
+      <!-- <div class="buttons" style="position:absolute;left:80px;top:8px;">
+        <button data-zoom="+1">-</button>
+        <button data-zoom="-1">+</button>
+      </div> -->
+      <div id="zoombutton", style="position:absolute;left:80px;top:0px;"></div>
     <svg id="embedding_svg">
     </svg>
   </div>

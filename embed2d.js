@@ -82,6 +82,7 @@ d3.csv("image_embed_subset.csv", function(error, data) {
   //     .attr("cy", yMap)
   //     .style("fill", 'green')//function(d) { return color(cValue(d));})
   //     .style('opacity', 0.3);
+
   var image = dot.enter()
       .append('image')
       .classed("embed_img",true)
@@ -133,10 +134,15 @@ d3.csv("image_embed_subset.csv", function(error, data) {
 
   // make whole background zoomable/draggable
   var zoom_handler = d3.zoom()
-	.extent([[0, 0], [widthE, heightE]])
-	.scaleExtent([1, 32])
-        .on("zoom", zoomed);
-  svg.append("rect")
+    	.extent([[0, 0], [widthE, heightE]])
+    	.scaleExtent([1, 32])
+      .on("zoom", zoomed);
+  var drag = d3.drag()
+      .subject(function (d) { return d; })
+      .on("start", dragstarted)
+      .on("drag", dragged)
+      .on("end", dragended);
+  var zoomable = svg.append("rect")
       .attr("x", 0)
       .attr("y", 0)
       .attr("width", widthE)
@@ -144,16 +150,65 @@ d3.csv("image_embed_subset.csv", function(error, data) {
       .style("fill", "white")
       .lower()
       .call(zoom_handler)
-  ;
+      .call(drag);
+
+
+
+  var slider = d3.select("#zoombutton").append("p").append("input")
+      .datum({})
+      .attr("type", "range")
+      .attr("value", zoom_handler.scaleExtent()[0])
+      .attr("min", zoom_handler.scaleExtent()[0])
+      .attr("max", zoom_handler.scaleExtent()[1])
+      .attr("step", (zoom_handler.scaleExtent()[1] - zoom_handler.scaleExtent()[0]) / 100)
+      .on("input", slided);
+
   function zoomed() {
     scale = d3.event.transform.k;
     // rescale images on zoom to make the dense clusters navigable when zoomed in
     d3.selectAll(".scalable").attr("transform", d3.event.transform);
     d3.selectAll(".embed_img").attr("width", function(d){return freqMap(d);});
-
+    slider.property("value", scale);
     //d3.selectAll(".embed_img").attr("transform", "scale(" + (1/d3.event.transform.k) +")");
     //console.log(d3.event.transform.k);
     };
+  function dragstarted(d) {
+      d3.event.sourceEvent.stopPropagation();
+      d3.select(this).classed("dragging", true);
+  }
+
+  function dragged(d) {
+      d3.select(this).attr("cx", d.x = d3.event.x).attr("cy", d.y = d3.event.y);
+  }
+
+  function dragended(d) {
+      d3.select(this).classed("dragging", false);
+  }
+
+  function slided(d) {
+      zoom_handler.scaleTo(zoomable, d3.select(this).property("value"));
+  };
+  //zoom in,out button
+  // var zoombutton = d3.select("#zoombutton");
+  //
+  // zoombutton.append('button')
+  //   .classed('zoom_reset', true)
+  //   .text('Zoom Reset')
+  //   .on("click", function(){
+  //     svg.transition().duration(200).call(zoom_handler.transform, d3.zoomIdentity);
+  //   });
+  // zoombutton.append("button")
+  //   .classed("zoom_out", true)
+  //   .text("-")
+  //   .on("click", function() {
+  //     zoom_handler.scaleBy(svg.transition().duration(200), 0.7);
+  //   });
+  // zoombutton.append("button")
+  //   .classed("zoom_in", true)
+  //   .text("+")
+  //   .on("click", function() {
+  //     zoom_handler.scaleBy(svg.transition().duration(500), 1.3);
+  //   });
 
 ////drop down button to select the embedding method
 // Create data = list of groups
@@ -164,7 +219,7 @@ var dropdownButton = d3.select("#selectButton");
 
 // add the options to the button
 dropdownButton // Add a button
-  .selectAll('myOptions') // Next 4 lines add options 
+  .selectAll('myOptions') // Next 4 lines add options
  	.data(embed_methods)
   .enter()
 	.append('option')
@@ -174,8 +229,8 @@ dropdownButton // Add a button
 // A function that update the embedding method to the plot
 function updateChart(myEmbed) {
   var data_embed = data.map(
-	function(d) 
-	{ 
+	function(d)
+	{
 		if (myEmbed =="PCA") {
 			return {x_embed: d.embed_pca_x, y_embed: d.embed_pca_y};
 		}
@@ -212,4 +267,3 @@ dropdownButton.on("change", function(d) {
 })
 ////drop down button end
 });
-
