@@ -186,29 +186,9 @@ d3.csv("image_embed_subset.csv", function(error, data) {
   }
 
   function slided(d) {
-      zoom_handler.scaleTo(zoomable, d3.select(this).property("value"));
+      zoom_handler.scaleTo(zoomable.transition().duration(100), d3.select(this).property("value"));
   };
-  //zoom in,out button
-  // var zoombutton = d3.select("#zoombutton");
-  //
-  // zoombutton.append('button')
-  //   .classed('zoom_reset', true)
-  //   .text('Zoom Reset')
-  //   .on("click", function(){
-  //     svg.transition().duration(200).call(zoom_handler.transform, d3.zoomIdentity);
-  //   });
-  // zoombutton.append("button")
-  //   .classed("zoom_out", true)
-  //   .text("-")
-  //   .on("click", function() {
-  //     zoom_handler.scaleBy(svg.transition().duration(200), 0.7);
-  //   });
-  // zoombutton.append("button")
-  //   .classed("zoom_in", true)
-  //   .text("+")
-  //   .on("click", function() {
-  //     zoom_handler.scaleBy(svg.transition().duration(500), 1.3);
-  //   });
+
 
 ////drop down button to select the embedding method
 // Create data = list of groups
