@@ -217,11 +217,10 @@ function updateChart(myEmbed) {
 		else if (myEmbed =="tSNE") {
 			return {x_embed: d.embed_tsne_x, y_embed: d.embed_tsne_y};
 		}
-	}
-  )
+	});
 
   image
-	.data(data_embed)
+    .data(data_embed)
     .transition()
     .duration(1000)
     .attr('x', function(d) { return xScale(d.x_embed);})
@@ -235,15 +234,44 @@ function updateChart(myEmbed) {
   yAxis = d3.axisLeft().scale(yScale);
 //	xScale.domain([d3.min(data, function(d) { return data.x_embed;})-2.5, d3.max(data, function(data) { return data.x_embed;})+1]).nice();
 //	yScale.domain([d3.min(data, function(data) { return data.y_embed;})-4, d3.max(data, function(data) { return data.y_embed;})+3]).nice();
-}
+};
 
 dropdownButton.on("change", function(d) {
-
     // recover the option that has been chosen
     var selectedOption = d3.select(this).property("value")
-
     // run the updateChart function with this selected option
     updateChart(selectedOption)
 })
 ////drop down button end
 });
+
+
+function updateData() {
+
+    // Get the data again
+    d3.csv("data-alt.csv", function(error, data) {
+       	data.forEach(function(d) {
+	    	d.date = parseDate(d.date);
+	    	d.close = +d.close;
+	    });
+
+    	// Scale the range of the data again
+    	x.domain(d3.extent(data, function(d) { return d.date; }));
+	    y.domain([0, d3.max(data, function(d) { return d.close; })]);
+
+    // Select the section we want to apply our changes to
+    var svg = d3.select("body").transition();
+
+    // Make the changes
+        svg.select(".line")   // change the line
+            .duration(750)
+            .attr("d", valueline(data));
+        svg.select(".x.axis") // change the x axis
+            .duration(750)
+            .call(xAxis);
+        svg.select(".y.axis") // change the y axis
+            .duration(750)
+            .call(yAxis);
+
+    });
+}
