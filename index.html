@@ -12,12 +12,37 @@
   </head>
   <meta charset="UTF-8">
   <style>
+    a {
+      color:#736ea7;
+      text-decoration:none;
+      font-weight:bold;
+    }
+    a:hover {
+      color:#b9b2ff;
+    }
+    .circled{
+    width: 38px;
+    height: 38px;
+    background: #d3f091;
+    text-align: center;
+    align-content: center;
+    align-items: center;
+    border-radius: 50%;
+    }
+    #tablet_previews {
+      max-width: 655px;
+    }
     .tablet_preview {
       width: 300px;
-      background:#f0f0f0;
-      margin:20px;
+      background:#efedf7;
+      margin: 8px;
       padding: 5px;
       float:left;
+    }
+    .tablet_preview p {
+      padding-left:1em;
+      text-indent:-1em;
+      margin:0 0;
     }
     .node image {
       stroke: steelblue;
@@ -37,7 +62,7 @@
     .wordembedtip {
       position: absolute;
       width: 120px;
-      height: 45px;
+      height: 145px;
       pointer-events: none;
       background-color: white;
       padding:5px;
@@ -48,7 +73,7 @@
       width:800px;
       height:200px;
     }
-    #svg_trees{
+    #svg_trees{ 
       float:left;
       width:795px;
       height:700px;
@@ -98,7 +123,7 @@
         <button data-zoom="+1">-</button>
         <button data-zoom="-1">+</button>
       </div> -->
-      <div id="zoombutton", style="position:absolute;left:80px;top:0px;"></div>
+      <div id="zoombutton", style="position:absolute;left:85px;top:0px;"></div>
     <svg id="embedding_svg">
     </svg>
   </div>
@@ -107,12 +132,14 @@
   <!-- TREE -->
   <div style="margin-left:0px;margin-top:20px;height:800;width:800;">
     <div style="padding-left:30px;">
-      Dispersion: <input type="range" min="-100" max="0" value="0" id="slider_dispersion" onchange="wheelHandler()" style="direction:rtl;" />
+      Dispersion: <input type="range" min="-250" max="0" value="0" id="slider_dispersion" onchange="wheelHandler()" style="direction:rtl;" />
       &nbsp;&nbsp;&nbsp;&nbsp;Scale by frequency? <input type="checkbox" id="check_scale" onchange="wheelHandler()" />
       &nbsp;&nbsp;&nbsp;&nbsp;Recenter on click? <input type="checkbox" id="check_recenter" />
+      <br/>Collapse unselected siblings? <input type="checkbox" id="check_hidesibs" onchange="change_focus()" /> <span style="color:#aaa">(Note: will redraw tree!)</span> <!-- TODO make this less obtrusive-->
     </div>
-  <input type="text" style="position:absolute;left:360px;top:590px;" size=6 onchange="change_focus()" id="center_sign" value="M217"/>
-  <img style="position:absolute;top:540px;left:380px;" height="50px" width="50px" id="focus_img" src="pngs/PE_mainforms/M217.trans.png" />
+  <input type="text" style="position:absolute;left:360px;top:610px;" size=6 onchange="change_focus()" id="center_sign" value="M217"/>
+  <img style="position:absolute;top:570px;left:386px;" height="50px" width="50px" id="focus_img" src="pngs/PE_mainforms/M217.trans.png" class="circled"/>
+    </div>
   <svg id="svg_trees">
     <mask id="myMask">
       <rect x="-30" y="-15" width="60" height="30" fill="white" />
@@ -153,6 +180,7 @@ $().ready( function(){
              //url: "pe.vec.json",
              dataType:'text',
              success:function(result) {
+	       result = result.replace(/ N[^M|]*/g,function(x){return x + " <br/> "});
 	       transliterations = result.split("\n");
 	       change_focus();
                //setup("right");

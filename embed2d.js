@@ -66,7 +66,8 @@ d3.csv("image_embed_subset_pca.csv", function(error, data) {
       wordembedtip.html(d.word + "<br/> Occurrence:" + d.freq
       +"<br/><img src='pngs/PE_mainforms/"+d.word+".png' />")
            .style("left", (d3.event.pageX + 20) + "px")
-           .style("top", (d3.event.pageY + 0) + "px");
+           .style("top", (d3.event.pageY + 0) + "px")
+           .style("z-index", "5");
      //d3.select( this ).raise()
        //.transition()
        //.attr("href", function(d){return "pngs/PE_mainforms/"+d.word+".png";})

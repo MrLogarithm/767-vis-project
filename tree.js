@@ -1,3 +1,5 @@
+// Adapted from https://bl.ocks.org/d3noob/43a860bc0024792f8803bba8ca0d5ecd
+
 var ngram_counts;
 var embeddings;
 
@@ -49,6 +51,9 @@ var dispersionMetric = sigmoidDispersion;
 //var dispersionMetric = polynomialDispersion;
 function scrollMap( d ) {
   // Force root to center
+  if ( d === null ) {
+    return;
+  }
   if ( d == root.left || d == root.right ) {
     d.x = height/2;
   }
@@ -82,7 +87,7 @@ svg_tree
 var dispersion=1;
 
 function wheelHandler(){
-  dispersion = (20-parseInt(document.getElementById("slider_dispersion").value))/20;
+  dispersion = (20-parseInt(document.getElementById("slider_dispersion").value))/50;
   if (d3.event){
     focus_height += d3.event.deltaY;
     focus_height = (focus_height < 0) ?
@@ -92,10 +97,8 @@ function wheelHandler(){
         focus_height;
   }
 
-  // TODO?
-  // maybe scale center too?
-  $("#center_sign").css('top', scrollMap(root.left)+260);
-  $("#focus_img").css('top', scrollMap(root.left)+210);
+  $("#center_sign").css('top', scrollMap(root.left)+280);
+  $("#focus_img").css('top', scrollMap(root.left)+240);
   d3.selectAll("g.node").attr("transform", scrollMapTransform)
   ;
 
@@ -135,7 +138,7 @@ var vars = "variants separate";
 var focus_height = height/2;
 
 
-function change_focus() {
+function change_focus(keep_old_selection=false) {
   var Process = function(start) {
     this.start=start
   }
@@ -151,8 +154,22 @@ function change_focus() {
   } else {
     $("#focus_img").attr("src", "");
   }
-  ctx.left  = new_focus;
-  ctx.right = new_focus;
+  //if (keep_old_selection == false) {
+    ctx.left  = new_focus;
+    ctx.right = new_focus;
+  /*} else {
+    var mov_dir = keep_old_selection;
+    var left_split = ctx.left.split(" ");
+    var rigt_split = ctx.right.split(" ");
+    if (mov_dir=="left"){
+      ctx.left  = left_split.slice(0,left_split.length-1-1);
+      ctx.right = new_focus + " " + rigt_split;
+    } else {
+      ctx.left  = left_split + " " + new_focus;
+      ctx.right = rigt_split.slice(1,rigt_split.length-1);
+    }
+    console.log(ctx);
+  }*/
   // change left and right contexts
   // collapse and redraw trees
   // find similar signs in embedding space
@@ -178,12 +195,12 @@ function change_focus() {
   }
 
   try {
-    var new_disp = -1*(Math.max(root.left.children.length, root.right.children.length));
-    new_disp = new_disp<-100?-100:
+    var new_disp = -2*(Math.max(root.left.children.length, root.right.children.length));
+    new_disp = new_disp<-250?-250:
       new_disp>-10?0:new_disp;
     console.log(new_disp);
     $("#slider_dispersion").val(new_disp);
-    dispersion = (20-new_disp)/20;
+    dispersion = (20-new_disp)/50;
   } catch (err) {
     // In case the root doesn't exist yet
   }
@@ -197,6 +214,8 @@ function change_focus() {
     p.run();
     $("#loading").hide();
   });
+  $("#center_sign").css('top', scrollMap(root.left)+280);
+  $("#focus_img").css('top', scrollMap(root.left)+240);
 }
 
 // Memoization speeds this up by a factor of ~10!
@@ -261,7 +280,7 @@ function do_initial_tree_setup() {
   ;
 }
 
-function setup( dir, reselect=false ) {
+function setup( dir ) {
   root[dir].x0 = height / 2;
   root[dir].y0 = width / 2;
   root[dir].data.name = document.getElementById("center_sign").value;
@@ -273,9 +292,10 @@ function setup( dir, reselect=false ) {
     root[dir].children.forEach(function(d){expand_selected(d, dir);});
   }
 
-  update(root[dir],  dir, propagate=false, reselect=reselect);
   refresh_pruned_tree(dir);
-  recolor(root[dir],dir,prune[dir]);
+  prune_incompatible(root[dir],dir,prune[dir]);
+  update(root[dir],  dir, propagate=false);
+  // update changes ctx based on new selections
 
 }
 
@@ -297,10 +317,18 @@ function grey(node, dir){
     node.children.forEach( function(d){grey(d,dir)} );
   }
 }
-function recolor(node,dir,prune) {
+function prune_incompatible(node,dir,prune) {
   // root is always in common
   // for each child, if not exist, remove click() and grey out
+  if ( node.pruned ) {
+    if ( node.collapsed ) {
+    }else{
+    node.children = node._children;
+    node.pruned=false;
+    }
+  }
   if ( node.children ) {
+    var newChildren = [];
     for ( var i = 0; i < node.children.length; i++ ) {
       //console.log("Should I prune"+node.children[i].data.name+"?");
       var found = false;
@@ -320,18 +348,21 @@ function recolor(node,dir,prune) {
         }
       }
       if (found) {
-	//console.log("No!");
-        //d3.selectAll("#"+dir+"_"+(node.depth+1)+"_"+node.children[i].data.name+"_img").style("filter","invert(0)");
-        recolor(node.children[i], dir, prune.children[k]);
+	newChildren.push( node.children[i] );
+        prune_incompatible(node.children[i], dir, prune.children[k]);
       } else {
-	//console.log("Yes!");
-        //d3.selectAll("#"+dir+"_"+(node.depth+1)+"_"+node.children[i].data.name).style("fill","#555");
-        //grey( d3.selectAll("#"+dir+"_"+(node.depth+1)+"_"+node.children[i].data.name) );
-        grey( node.children[i], dir );
-
-        //d3.selectAll("#"+dir+"_"+(node.depth+1)+"_"+node.children[i].data.name+"_img").style("filter","invert(1)");
+	grey( node.children[i], dir );
       }
     }
+    //node._children = node.children;
+    //node.children = newChildren;
+    //node.pruned = true;
+    console.log("new children",newChildren);
+    if (!node.collapsed) {
+    node._children = node.children;
+    }
+    node.children = newChildren;
+    node.pruned = true;
   }
 }
 function expand_selected(d, dir) {
@@ -358,10 +389,9 @@ function collapse(d) {
   }
 }
 
-function update(source, dir="right", propagate=false, reselect=false) {
+function update(source, dir="right", propagate=false) {
 
   //console.log("Reselect?");
-  //console.log(reselect);
   //console.log("Propagate?");
   //console.log(propagate);
   // todo get list of parent nodes - these specify the search string
@@ -384,39 +414,12 @@ function update(source, dir="right", propagate=false, reselect=false) {
     ROOT_OFFSET = 0;
   }
   nodes.forEach(function(d){ d.y = (ROOT_OFFSET + width / 2) + d.depth * LAYER_SPACE; });
-  if ( reselect ) {
-    //console.log("Not changing the selection, because I'm just pruning the tree");
-  } else {
-    if ( source.children ) {
-      //console.log("I think you expanded " + source.data.name);
-      selected[dir] = [source];
-      ctx[dir] = source.data.name;
-    } else {
-      //console.log("I think you collapsed " + source.data.name);
-      selected[dir] = [];
-      ctx[dir] = "";
-    }
-    if (source.depth > 0) {
-      var ptr = source;
-      while ( ptr.parent !== null ) {
-        ptr = ptr.parent;
-        selected[dir].push(ptr);
-        if ( dir == "left" ) {
-          ctx[dir] += " " + ptr.data.name;
-        } else {
-          ctx[dir] = ptr.data.name + " " + ctx[dir];
-        }
-      }
-    }
-    ctx[dir] = ctx[dir].trim();
-    selected[dir].reverse();
-  }
   if (propagate) {
     //console.log("need to update ~"+dir+"  tree with ctx " + ctx[dir]);
     var otherDir = ( dir == "left" ) ? "right" : "left";
-    update(root[otherDir],  otherDir, propagate=false, reselect=true);
     refresh_pruned_tree(otherDir);
-    recolor(root[otherDir],otherDir,prune[otherDir]);
+    prune_incompatible(root[otherDir],otherDir,prune[otherDir]);
+    update(root[otherDir],  otherDir, propagate=false);
   }
   ctx[dir] = ctx[dir].trim();
   //console.log(ctx[dir], dir);
@@ -457,8 +460,8 @@ function update(source, dir="right", propagate=false, reselect=false) {
       .attr('cx',imgsize/2 - (dir=="left"?imgsize:0))
       .attr('width', imgsize)
       .attr('height', imgsize)
-.on("wheel", wheelHandler)
-.on("zoom",function(){}) // disable scrolling when hovering on tree
+      .on("wheel", wheelHandler)
+      .on("zoom",function(){}) // disable scrolling when hovering on tree
   ;
   nodeEnter
       .filter(function(d){
@@ -472,15 +475,16 @@ function update(source, dir="right", propagate=false, reselect=false) {
       .attr('width', imgsize)
       .attr('height', imgsize)
       .attr("href",function(d){return "pngs/PE_mainforms/"+d.data.name+".trans.png";})
-  .attr("onerror", "this.style.display='none'")
-.on("wheel", wheelHandler)
-.on("zoom",function(){}) // disable scrolling when hovering on tree
+      .attr("onerror", "this.style.display='none'")
+      .on("wheel", wheelHandler)
+      .on("zoom",function(){}) // disable scrolling when hovering on tree
   ;
 
   // Add labels for the nodes
   nodeEnter.append('text')
         .attr("dy", function(d) {
-          return ( d.data.name == "unk" || d.data.name == "X" )
+          return ( d.data.name == "unk" || d.data.name == "X" 
+	           || d.data.name == "BEGIN" || d.data.name == "END" )
 	    ? "5"
 	    : "-1em";
 	})
@@ -494,8 +498,12 @@ function update(source, dir="right", propagate=false, reselect=false) {
           return (d.depth == 0)
 	    ? ""
 	    : (d.children || d._children
-	      ? d.data.name.replace("unk","[...]").replace("x","+").replace('lpar','(').replace('rpar',')')
-	      : "" );
+	      ? d.data.name
+	           .replace("unk","[...]")
+	           .replace("x","+")
+	           .replace('lpar','(')
+	           .replace('rpar',')')
+	      : ( dir == "left" ? "<boe>": "<eoe>" ) );
         })
 .on("wheel", wheelHandler)
 .on("zoom",function(){}) // disable scrolling when hovering on tree
@@ -564,20 +572,18 @@ function update(source, dir="right", propagate=false, reselect=false) {
     d.y0 = d.y;
   });
 
-  // Creates a curved (diagonal) path from parent to the child nodes
-
   d3.selectAll("circle.node."+dir).style("fill",function(d){
     if (( selected[dir][d.depth] ) && (selected[dir][d.depth].data.name == d.data.name )) {
-      return "#afa";
+      return "#d3f091";
     } else {
-      return d.children||d._children ? "lightsteelblue" : "#000";
+      return d.children||d._children ? "white" : "#eee";
     }
   });
 
-  refresh_pruned_tree(dir);
-  recolor(root[dir],dir,prune[dir]);
+  //refresh_pruned_tree(dir);
+  //prune_incompatible(root[dir],dir,prune[dir]);
 
-  console.log(propagate,reselect,ctx);
+  console.log(propagate,ctx);
     grep_tablets( ctx );
 
   $('.node').on('mousewheel DOMMouseScroll', e=>noScroll(e) )
@@ -588,34 +594,82 @@ function update(source, dir="right", propagate=false, reselect=false) {
   function click(d, dir) {
     if ( document.getElementById('check_recenter').checked ) {
       document.getElementById('center_sign').value = d.data.name;
-      change_focus();
+      change_focus(keep_old_selection = dir);
     } else {
       if (d.children) {
-        d._children = d.children;
+        //d._children = d.children;
         d.children = null;
+	d.pruned=false;
       } else {
         d.children = d._children;
         if (d.children){
           d.children.forEach(collapse);
         }
-        d._children = null;
+        //d._children = null;
       }
       // Collapse sibling nodes to save space
       // TODO Option to disable this? Might
       // want to compare multiple subtrees.
-      /*
+      ///*
       if ( d.parent ) {
-        d.parent.children.filter(
+        /*d.parent.children.filter(
 	  function(dd){
 	    return d.data.name != dd.data.name
-	  }).forEach(collapse);
+	  }).forEach(
+	    collapse
+	  );//*/
+	// Hide siblings to save space:
+	if ( document.getElementById("check_hidesibs").checked ) {
+	  if (d.parent.collapsed) {
+	    d.parent.children = d.parent._children;
+	    d.parent.collapsed = false;
+	  } else {
+	    d.parent._children = d.parent.children;
+	    d.parent.children = [d];
+	    d.parent.collapsed = true;
+	  }
+	}
       }
+
+
+    {
+    if ( d.children ) {
+      //console.log("I think you expanded " + d.data.name);
+      selected[dir] = [d];
+      ctx[dir] = d.data.name;
+    } else {
+    //  console.log("I think you collapsed " + d.data.name);
+      selected[dir] = [];
+      ctx[dir] = "";
+    }
+    if (d.depth > 0) {
+      var ptr = d;
+      while ( ptr.parent !== null ) {
+        ptr = ptr.parent;
+        selected[dir].push(ptr);
+        if ( dir == "left" ) {
+          ctx[dir] += " " + ptr.data.name;
+        } else {
+          ctx[dir] = ptr.data.name + " " + ctx[dir];
+        }
+      }
+    }
+    ctx[dir] = ctx[dir].trim();
+    selected[dir].reverse();
+    }
+
+
+
       //*/
       //console.log("updating other side:");
       //console.log("source is");
       //console.log(d);
       //console.log(dir);
-      update(d,dir=dir,propagate=true,reselect=false);
+      //update(d,dir=dir,propagate=true);
+  // make sure no children of the clicked node are incompatible:
+      refresh_pruned_tree(dir);
+      prune_incompatible(root[dir],dir,prune[dir]);
+      update(d,  dir=dir, propagate=true);
     }
   }
   function diagonal(s, d) {
