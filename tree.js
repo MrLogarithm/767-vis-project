@@ -592,6 +592,7 @@ function update(source, dir="right", propagate=false) {
 
 
   function click(d, dir) {
+    current_page = 0;
     if ( document.getElementById('check_recenter').checked ) {
       document.getElementById('center_sign').value = d.data.name;
       change_focus(keep_old_selection = dir);
