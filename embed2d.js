@@ -115,7 +115,7 @@ d3.csv("image_embed_subset_pca.csv", function(error, data) {
   // make whole background zoomable/draggable
   var zoom_handler = d3.zoom()
     	.extent([[0, 0], [widthE, heightE]])
-    	.scaleExtent([1, 32])
+    	.scaleExtent([0.5, 32])
       .on("zoom", zoomed);
   var drag = d3.drag()
       .subject(function (d) { return d; })
@@ -198,48 +198,26 @@ function updateChart(myEmbed) {
   }
   // Get the data again
   d3.csv(csv_file, function(error, data) {
+    // // draw dots
+    var dot = svg.selectAll(".dot")
+        .data(data);
+    // var xValue = function(d) { return d.x;};
+    // var yValue = function(d) { return d.y;};
+    // var xScale = d3.scaleLinear().range([0, widthE]);
+    // var yScale = d3.scaleLinear().range([ heightE, 0]);
     xScale.domain([d3.min(data, xValue)-2.5, d3.max(data, xValue)+1]).nice();
     yScale.domain([d3.min(data, yValue)-4, d3.max(data, yValue)+3]).nice();
     freqScale.domain([d3.min(data, freqValue) , d3.max(data, freqValue)] ).nice();
 
-    // // draw dots
-    var dot = svg.selectAll(".dot")
-        .data(data);
-
     image = svg.selectAll('.embed_img')
+        .transition()
+        .duration(1000)
         .attr('x', function(d) { return xScale(d.x);})
         .attr('y', function(d) { return yScale(d.y);})
         .attr('width',  freqMap)
         .attr('height', freqMap)
         .attr("href",function(d){return "pngs/PE_mainforms/"+d.word+".trans.png";});
 
-  // // Select the section we want to apply our changes to
-  // svg = d3.select("body").transition();
-  //
-  // // Make the changes
-  // svg.select(".line")   // change the line
-  //     .duration(750)
-  //     .attr("d", valueline(data));
-  // svg.select(".x.axis") // change the x axis
-  //     .duration(750)
-  //     .call(xAxis);
-  // svg.select(".y.axis") // change the y axis
-  //     .duration(750)
-  //     .call(yAxis);
-
-  image
-    .data(data)
-    .transition()
-    .duration(1000)
-    .attr('x', function(d) { return xScale(d.x);})
-    .attr('y', function(d) { return xScale(d.y);});
-
-  xValue = function(d) { return d.x;};
-  yValue = function(d) { return d.y;};
-  xAxis = d3.axisBottom().scale(xScale);
-  yAxis = d3.axisLeft().scale(yScale);
-//	xScale.domain([d3.min(data, function(d) { return data.x_embed;})-2.5, d3.max(data, function(data) { return data.x_embed;})+1]).nice();
-//	yScale.domain([d3.min(data, function(data) { return data.y_embed;})-4, d3.max(data, function(data) { return data.y_embed;})+3]).nice();
   });
 }
 dropdownButton.on("change", function(d) {
