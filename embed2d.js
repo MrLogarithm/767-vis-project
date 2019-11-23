@@ -13,7 +13,7 @@ const marginE = {top: 0, right: 0, bottom: 0, left: 0},
 // setup x
 //var xValue = function(d, myEmbed_method) { if (myEmbed_method =="PCA") {return d.embed_pca_x;}
 //				else if (myEmbed_method == "tSNE") {return d.embed_tsne_x;}},// data -> value
-var xValue = function(d) { return d.embed_pca_x;}, // data -> value
+var xValue = function(d) { return d.x;}, // data -> value
     xScale = d3.scaleLinear().range([0, widthE]), // value -> display
 //    xMap = function(d) { return xScale(xValue(d));}, // data -> display
     xAxis = d3.axisBottom().scale(xScale);
@@ -21,7 +21,7 @@ var xValue = function(d) { return d.embed_pca_x;}, // data -> value
 // setup y
 //var yValue = function(d, myEmbed_method) { if (myEmbed_method =="PCA") {return d.embed_pca_y;}
 //				else if (myEmbed_method == "tSNE") {return d.embed_tsne_y;} },// data -> value
-var yValue = function(d) { return d.embed_pca_y;}, // data -> value
+var yValue = function(d) { return d.y;}, // data -> value
     yScale = d3.scaleLinear().range([ heightE, 0]), // value -> display
 //    yMap = function(d) { return yScale(yValue(d));}, // data -> display
     yAxis = d3.axisLeft().scale(yScale);
@@ -53,43 +53,23 @@ var wordembedtip = d3.select("body").append("div")
 
 
 
-d3.csv("image_embed_subset.csv", function(error, data) {
+d3.csv("image_embed_subset_pca.csv", function(error, data) {
   // don't want dots overlapping axis, so add in buffer to data domain
   xScale.domain([d3.min(data, xValue)-2.5, d3.max(data, xValue)+1]).nice();
   yScale.domain([d3.min(data, yValue)-4, d3.max(data, yValue)+3]).nice();
   freqScale.domain([d3.min(data, freqValue) , d3.max(data, freqValue)] ).nice();
 
-  //get rid of x,y axis
-  //svg.append("g")
-  //    .attr("class", "xAxis")
-  //    .classed("scalable",true)
-  //    .attr("transform", "translate(0," + heightE + ")")
-  //    .call(xAxis);
-  // y-axis
-  //svg.append("g")
-  //    .attr("class", "yAxis")
-  //    .classed("scalable",true)
-  //    .call(yAxis);
-
   // draw dots
   var dot = svg.selectAll(".dot")
       .data(data);
-  // dot.enter()
-  //   .append("circle")
-  //     .attr("class", "dot")
-  //     .attr("r", freqMap)
-  //     .attr("cx", xMap)
-  //     .attr("cy", yMap)
-  //     .style("fill", 'green')//function(d) { return color(cValue(d));})
-  //     .style('opacity', 0.3);
 
   var image = dot.enter()
       .append('image')
       .classed("embed_img",true)
       .classed("scalable",true)
       //.attr('id', "embed_img")
-      .attr('x', function(d) { return xScale(d.embed_pca_x);})
-      .attr('y', function(d) { return yScale(d.embed_pca_y);})
+      .attr('x', function(d) { return xScale(d.x);})
+      .attr('y', function(d) { return yScale(d.y);})
       .attr('width',  freqMap)
       .attr('height', freqMap)
       .attr("href",function(d){return "pngs/PE_mainforms/"+d.word+".trans.png";});
@@ -189,6 +169,7 @@ d3.csv("image_embed_subset.csv", function(error, data) {
       zoom_handler.scaleTo(zoomable.transition().duration(100), d3.select(this).property("value"));
   };
 
+});
 
 ////drop down button to select the embedding method
 // Create data = list of groups
@@ -208,70 +189,63 @@ dropdownButton // Add a button
 
 // A function that update the embedding method to the plot
 function updateChart(myEmbed) {
-  var data_embed = data.map(
-	function(d)
-	{
-		if (myEmbed =="PCA") {
-			return {x_embed: d.embed_pca_x, y_embed: d.embed_pca_y};
-		}
-		else if (myEmbed =="tSNE") {
-			return {x_embed: d.embed_tsne_x, y_embed: d.embed_tsne_y};
-		}
-	});
+  var csv_file;
+  if (myEmbed =="PCA") {
+    csv_file = "image_embed_subset_pca.csv";
+  }
+  else if (myEmbed =="tSNE") {
+    csv_file = "image_embed_subset_tsne.csv";
+  }
+  // Get the data again
+  d3.csv(csv_file, function(error, data) {
+    xScale.domain([d3.min(data, xValue)-2.5, d3.max(data, xValue)+1]).nice();
+    yScale.domain([d3.min(data, yValue)-4, d3.max(data, yValue)+3]).nice();
+    freqScale.domain([d3.min(data, freqValue) , d3.max(data, freqValue)] ).nice();
+
+    // // draw dots
+    var dot = svg.selectAll(".dot")
+        .data(data);
+
+    image = svg.selectAll('.embed_img')
+        .attr('x', function(d) { return xScale(d.x);})
+        .attr('y', function(d) { return yScale(d.y);})
+        .attr('width',  freqMap)
+        .attr('height', freqMap)
+        .attr("href",function(d){return "pngs/PE_mainforms/"+d.word+".trans.png";});
+
+  // // Select the section we want to apply our changes to
+  // svg = d3.select("body").transition();
+  //
+  // // Make the changes
+  // svg.select(".line")   // change the line
+  //     .duration(750)
+  //     .attr("d", valueline(data));
+  // svg.select(".x.axis") // change the x axis
+  //     .duration(750)
+  //     .call(xAxis);
+  // svg.select(".y.axis") // change the y axis
+  //     .duration(750)
+  //     .call(yAxis);
 
   image
-    .data(data_embed)
+    .data(data)
     .transition()
     .duration(1000)
-    .attr('x', function(d) { return xScale(d.x_embed);})
-    .attr('y', function(d) { return xScale(d.y_embed);});
+    .attr('x', function(d) { return xScale(d.x);})
+    .attr('y', function(d) { return xScale(d.y);});
 
-  xValue = function(d) { return d.x_embed;};
-  yValue = function(d) { return d.y_embed;};
-  xScale.domain([d3.min(data, xValue)-2.5, d3.max(data, xValue)+1]).nice();
-  yScale.domain([d3.min(data, yValue)-4, d3.max(data, yValue)+3]).nice();
+  xValue = function(d) { return d.x;};
+  yValue = function(d) { return d.y;};
   xAxis = d3.axisBottom().scale(xScale);
   yAxis = d3.axisLeft().scale(yScale);
 //	xScale.domain([d3.min(data, function(d) { return data.x_embed;})-2.5, d3.max(data, function(data) { return data.x_embed;})+1]).nice();
 //	yScale.domain([d3.min(data, function(data) { return data.y_embed;})-4, d3.max(data, function(data) { return data.y_embed;})+3]).nice();
-};
-
+  });
+}
 dropdownButton.on("change", function(d) {
     // recover the option that has been chosen
     var selectedOption = d3.select(this).property("value")
     // run the updateChart function with this selected option
     updateChart(selectedOption)
-})
-////drop down button end
 });
-
-
-function updateData() {
-
-    // Get the data again
-    d3.csv("data-alt.csv", function(error, data) {
-       	data.forEach(function(d) {
-	    	d.date = parseDate(d.date);
-	    	d.close = +d.close;
-	    });
-
-    	// Scale the range of the data again
-    	x.domain(d3.extent(data, function(d) { return d.date; }));
-	    y.domain([0, d3.max(data, function(d) { return d.close; })]);
-
-    // Select the section we want to apply our changes to
-    var svg = d3.select("body").transition();
-
-    // Make the changes
-        svg.select(".line")   // change the line
-            .duration(750)
-            .attr("d", valueline(data));
-        svg.select(".x.axis") // change the x axis
-            .duration(750)
-            .call(xAxis);
-        svg.select(".y.axis") // change the y axis
-            .duration(750)
-            .call(yAxis);
-
-    });
-}
+////drop down button end
