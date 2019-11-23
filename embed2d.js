@@ -2,28 +2,16 @@
 const marginE = {top: 0, right: 0, bottom: 0, left: 0},
     widthE = 800 - marginE.left - marginE.right,
     heightE = 200 - marginE.top - marginE.bottom;
-/*
- * value accessor - returns the value to encode for a given data object.
- * scale - maps value to a visual display encoding, such as a pixel position.
- * map function - maps from data value to display value
- * axis - sets up axis
- */
 
-//var myEmbed_method = 'PCA';
 // setup x
-//var xValue = function(d, myEmbed_method) { if (myEmbed_method =="PCA") {return d.embed_pca_x;}
-//				else if (myEmbed_method == "tSNE") {return d.embed_tsne_x;}},// data -> value
 var xValue = function(d) { return d.x;}, // data -> value
     xScale = d3.scaleLinear().range([0, widthE]), // value -> display
 //    xMap = function(d) { return xScale(xValue(d));}, // data -> display
     xAxis = d3.axisBottom().scale(xScale);
 
 // setup y
-//var yValue = function(d, myEmbed_method) { if (myEmbed_method =="PCA") {return d.embed_pca_y;}
-//				else if (myEmbed_method == "tSNE") {return d.embed_tsne_y;} },// data -> value
 var yValue = function(d) { return d.y;}, // data -> value
     yScale = d3.scaleLinear().range([ heightE, 0]), // value -> display
-//    yMap = function(d) { return yScale(yValue(d));}, // data -> display
     yAxis = d3.axisLeft().scale(yScale);
 
 // freq controls the word size
@@ -33,10 +21,6 @@ var freqValue = function(d) {return d.freq;},
 
 // Record the zoom level:
 var scale = 1;
-
-// setup fill color
-// var cValue = function(d) { return d.freq;},
-//     color = d3.scaleOrdinal(d3.schemeBuGn).domain([0,1]);
 
 // add the graph canvas to the body of the webpage
 var svg = d3.select('#embedding_svg')
@@ -50,8 +34,6 @@ var svg = d3.select('#embedding_svg')
 var wordembedtip = d3.select("body").append("div")
     .attr("class", "wordembedtip")
     .style("opacity", 0);
-
-
 
 d3.csv("image_embed_subset_pca.csv", function(error, data) {
   // don't want dots overlapping axis, so add in buffer to data domain
@@ -98,11 +80,6 @@ d3.csv("image_embed_subset_pca.csv", function(error, data) {
         wordembedtip.transition()
              .duration(500)
              .style("opacity", 0);
-       //d3.select( this )
-         //.transition()
-         //.attr("href",function(d){return "pngs/PE_mainforms/"+d.word+".trans.png";})
-         //.attr("height",freqMap)
-         //.attr("width", freqMap)
       ;
      })
     .on('click', function(d){
@@ -110,7 +87,6 @@ d3.csv("image_embed_subset_pca.csv", function(error, data) {
       console.log(document.getElementById("center_sign").value);
       change_focus();
     });
-
 
   // make whole background zoomable/draggable
   var zoom_handler = d3.zoom()
@@ -132,8 +108,6 @@ d3.csv("image_embed_subset_pca.csv", function(error, data) {
       .call(zoom_handler)
       .call(drag);
 
-
-
   var slider = d3.select("#zoombutton").append("p").append("input")
       .datum({})
       .attr("type", "range")
@@ -149,8 +123,6 @@ d3.csv("image_embed_subset_pca.csv", function(error, data) {
     d3.selectAll(".scalable").attr("transform", d3.event.transform);
     d3.selectAll(".embed_img").attr("width", function(d){return freqMap(d);});
     slider.property("value", scale);
-    //d3.selectAll(".embed_img").attr("transform", "scale(" + (1/d3.event.transform.k) +")");
-    //console.log(d3.event.transform.k);
     };
   function dragstarted(d) {
       d3.event.sourceEvent.stopPropagation();
@@ -172,10 +144,9 @@ d3.csv("image_embed_subset_pca.csv", function(error, data) {
 });
 
 ////drop down button to select the embedding method
-// Create data = list of groups
 var embed_methods = ["PCA", "tSNE"]
 
-// Initialize the button
+// Initialize the drop down button
 var dropdownButton = d3.select("#selectButton");
 
 // add the options to the button
@@ -201,10 +172,6 @@ function updateChart(myEmbed) {
     // // draw dots
     var dot = svg.selectAll(".dot")
         .data(data);
-    // var xValue = function(d) { return d.x;};
-    // var yValue = function(d) { return d.y;};
-    // var xScale = d3.scaleLinear().range([0, widthE]);
-    // var yScale = d3.scaleLinear().range([ heightE, 0]);
     xScale.domain([d3.min(data, xValue)-2.5, d3.max(data, xValue)+1]).nice();
     yScale.domain([d3.min(data, yValue)-4, d3.max(data, yValue)+3]).nice();
     freqScale.domain([d3.min(data, freqValue) , d3.max(data, freqValue)] ).nice();
@@ -220,6 +187,7 @@ function updateChart(myEmbed) {
 
   });
 }
+
 dropdownButton.on("change", function(d) {
     // recover the option that has been chosen
     var selectedOption = d3.select(this).property("value")
