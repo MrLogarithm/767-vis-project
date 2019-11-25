@@ -1,20 +1,17 @@
-//set embedding plot canvas size
+// Set embedding plot canvas size:
 const marginE = {top: 0, right: 0, bottom: 0, left: 0},
     widthE = 800 - marginE.left - marginE.right,
     heightE = 200 - marginE.top - marginE.bottom;
 
-// setup x
+// Setup axes:
 var xValue = function(d) { return d.x;}, // data -> value
     xScale = d3.scaleLinear().range([0, widthE]), // value -> display
-//    xMap = function(d) { return xScale(xValue(d));}, // data -> display
     xAxis = d3.axisBottom().scale(xScale);
-
-// setup y
 var yValue = function(d) { return d.y;}, // data -> value
     yScale = d3.scaleLinear().range([ heightE, 0]), // value -> display
     yAxis = d3.axisLeft().scale(yScale);
 
-// freq controls the word size
+// Frequency controls the word size:
 var freqValue = function(d) {return d.freq;},
     freqScale = d3.scaleLinear().range([16, 25]),
     freqMap = function(d) {return freqScale(freqValue(d))/Math.sqrt(scale)};
@@ -22,74 +19,79 @@ var freqValue = function(d) {return d.freq;},
 // Record the zoom level:
 var scale = 1;
 
-// add the graph canvas to the body of the webpage
+// Add the graph canvas to the body of the webpage:
 var svg = d3.select('#embedding_svg')
     .attr("width", widthE + marginE.left + marginE.right)
     .attr("height", heightE + marginE.top + marginE.bottom)
     .attr("viewBox", [0, 0, widthE + marginE.left + marginE.right, heightE + marginE.top + marginE.bottom])
-  .append("g")
+    .append("g")
     .attr("transform", "translate(" + marginE.left + "," + marginE.top + ")");
 
-// add the wordembedtip area to the webpage
+// Add the wordembedtip area to the webpage
+// wordembedtip is a tooltip to show information
+// about a sign when hovered over that sign
 var wordembedtip = d3.select("body").append("div")
     .attr("class", "wordembedtip")
     .style("opacity", 0);
 
 d3.csv("image_embed_subset_pca.csv", function(error, data) {
-  // don't want dots overlapping axis, so add in buffer to data domain
+  // don't want dots overlapping the axis lines, so add in buffer to data domain
   xScale.domain([d3.min(data, xValue)-2.5, d3.max(data, xValue)+1]).nice();
   yScale.domain([d3.min(data, yValue)-4, d3.max(data, yValue)+3]).nice();
   freqScale.domain([d3.min(data, freqValue) , d3.max(data, freqValue)] ).nice();
 
-  // draw dots
+  // Draw dots
   var dot = svg.selectAll(".dot")
       .data(data);
 
+  // Add sign images overtop the dots:
   var image = dot.enter()
       .append('image')
       .classed("embed_img",true)
       .classed("scalable",true)
-      //.attr('id', "embed_img")
       .attr('x', function(d) { return xScale(d.x);})
       .attr('y', function(d) { return yScale(d.y);})
       .attr('width',  freqMap)
       .attr('height', freqMap)
       .attr("href",function(d){return "pngs/PE_mainforms/"+d.word+".trans.png";});
 
-  //set image event
+  // Set image hover event:
   var imageEvent = image
-  .on("mouseover", function(d) {
-      // select element in current context
-      wordembedtip.transition()
-           .duration(200)
-           .style("opacity", .9);
-      wordembedtip.html(d.word + "<br/> Occurrence:" + d.freq
-      +"<br/><img src='pngs/PE_mainforms/"+d.word+".png' />")
-           .style("left", (d3.event.pageX + 20) + "px")
-           .style("top", (d3.event.pageY + 0) + "px")
-           .style("z-index", "5");
-     //d3.select( this ).raise()
-       //.transition()
-       //.attr("href", function(d){return "pngs/PE_mainforms/"+d.word+".png";})
+      .on("mouseover", function(d) {
+	// Reveal tooltip:
+        wordembedtip.transition()
+             .duration(200)
+             .style("opacity", .9);
+        // Add information about hovered element:
+        wordembedtip.html(d.word + "<br/> Occurrence:" + d.freq
+        +"<br/><img src='pngs/PE_mainforms/"+d.word+".png' />")
+             .style("left", (d3.event.pageX + 20) + "px")
+             .style("top", (d3.event.pageY + 0) + "px")
+             .style("z-index", "5");
        // This caused the image to move when you hovered while zoomed in...
        // Haven't figured out how to fix.
-       //.attr("height", function(d){return 100/scale})
-       //.attr("width", function(d){return 100/scale});
-       //.attr("transform","scale("+scale+")")
-     })
-    .on("mouseout", function(d) {
+       //d3.select( this ).raise()
+         //.transition()
+         //.attr("href", function(d){return "pngs/PE_mainforms/"+d.word+".png";})
+         //.attr("height", function(d){return 100/scale})
+         //.attr("width", function(d){return 100/scale});
+         //.attr("transform","scale("+scale+")")
+      })
+      // Hide tooltip on mouseout
+      .on("mouseout", function(d) {
         wordembedtip.transition()
              .duration(500)
              .style("opacity", 0);
-      ;
-     })
-    .on('click', function(d){
-      document.getElementById("center_sign").value = d.word;
-      console.log(document.getElementById("center_sign").value);
-      change_focus();
-    });
+        ;
+      })
+      // On mouse click, set the selected sign as focus of the tree:
+      .on('click', function(d){
+        document.getElementById("center_sign").value = d.word;
+        console.log(document.getElementById("center_sign").value);
+        change_focus();
+      });
 
-  // make whole background zoomable/draggable
+  // Make whole background zoomable/draggable:
   var zoom_handler = d3.zoom()
     	.extent([[0, 0], [widthE, heightE]])
     	.scaleExtent([0.5, 32])
@@ -109,6 +111,7 @@ d3.csv("image_embed_subset_pca.csv", function(error, data) {
       .call(zoom_handler)
       .call(drag);
 
+  // Adjust zoom when user slides slider:
   var slider = d3.select("#zoombutton").append("p").append("input")
       .datum({})
       .attr("type", "range")
@@ -121,10 +124,12 @@ d3.csv("image_embed_subset_pca.csv", function(error, data) {
   function zoomed() {
     scale = d3.event.transform.k;
     // rescale images on zoom to make the dense clusters navigable when zoomed in
+    // not quite semantic zoom but also not straight geometric zoom
     d3.selectAll(".scalable").attr("transform", d3.event.transform);
     d3.selectAll(".embed_img").attr("width", function(d){return freqMap(d);});
     slider.property("value", scale);
     };
+
   function dragstarted(d) {
       d3.event.sourceEvent.stopPropagation();
       d3.select(this).classed("dragging", true);
